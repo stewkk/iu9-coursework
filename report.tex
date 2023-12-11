@@ -657,18 +657,32 @@
 
 Силовые алгоритмы визуализации графов являются подходящим инструментом для задачи визуализации графа связей пользователей социальной сети. Несмотря на некоторые ограничения, такие как чувствительность к начальным условиям и зависимость от параметров, эти алгоритмы обладают важными преимуществами.
 
-Их естественное моделирование физических свойств позволяет отразить реальные взаимодействия в социальных сетях, а акцент на локальных структурах упрощает выделение подгрупп пользователей. Кроме того, силовые алгоритмы обеспечивают эстетически привлекательные визуализации с равномерным распределением вершин и минимизацией пересечений рёбер.
+Естественное моделирование физических свойств позволяет отразить реальные взаимодействия в социальных сетях.Кроме того, силовые алгоритмы обеспечивают эстетически привлекательные визуализации с равномерным распределением вершин и минимизацией пересечений рёбер.
 
 
 
 \section{Обзор силовых алгоритмов визуализации графов}
 
-\subsection{Алгоритм Идса}
+\subsection{Алгоритм Идеса}
 
-
+Алгоритм предложил австралийский ученый Питер Идес в 1984 году. Каждое ребро графа моделируется как пружина, которая стремится удерживать связанные вершины на определенном расстоянии друг от друга. Если расстояние между вершинами больше желаемого, то действует пружинная сила, направленная на уменьшение расстояния. Если расстояние меньше, то действует отталкивающая сила, направленная на увеличение расстояния. Вершины, не соединенные ребрами, действуют друг на друга отталкивающим образом. Это содействует распределению вершин по плоскости графа, предотвращая их слишком близкое расположение. Псевдокод алгоритма Идеса представлен на листинге \ref{alg:eades}
 \begin{algorithm}
 \caption{Алгоритм Идса}\label{alg:eades}
 \begin{algorithmic}
+
+  \Function{$f_{rep}$}{$p_u, p_v$}
+  \State $r \gets c_{spring}\log{\frac{\|p_v - p_u \|}{l}}  \cdot \overrightarrow{p_u p_v}  $
+  
+  \Return $r$  
+  \EndFunction
+
+ 
+  \Function{$f_{spring}$}{$p_u, p_v$}
+  \State $r \gets \frac{c_{rep}}{\|p_v - p_u \|} \cdot \overrightarrow{p_u p_v}  $
+  
+  \Return $r$  
+  \EndFunction
+ 
 
 	\Function{Eades}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
 	\State $t \gets 1$
@@ -694,10 +708,85 @@
 
 
 \subsection{Алгоритм Фрюхтермана-Рейнгольда }
+
+
+\begin{algorithm}
+\caption{Алгоритм Фрюхтермана-Рейнгольда}\label{alg:fr_algorithm}
+\begin{algorithmic}
+
+  \Function{$f_{rep}$}{$p_u, p_v$}
+  \State $r \gets \frac{l^2}{\|p_v - p_u \|}  \cdot \overrightarrow{p_v p_u}  $
+  
+  \Return $r$  
+  \EndFunction
+
+ 
+  \Function{$f_{spring}$}{$p_u, p_v$}
+  \State $r \gets \frac{\|p_v - p_u \|^2}{l} \cdot \overrightarrow{p_u p_v}  $
+  
+  \Return $r$  
+  \EndFunction
+ 
+
+	\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
+	\State $t \gets 1$
+	\While{$t \leq K$} 
+
+		\For{$u \in V$}
+			\State $F_{u}(t) \gets \sum_{v \in V}{f_{rep}(u, v)} + \sum_{v:\{u,v\} \in E}{f_{spring}(u, v)}$
+		
+
+		\EndFor
+		\For{$u \in V$}
+			\State $p_u \gets p_u + \delta \cdot F_u(t)$
+		\EndFor
+		
+		\State $t \gets t + 1$
+	\EndWhile
+	\Return $p$
+	\EndFunction
+
+
+\end{algorithmic}
+\end{algorithm}
+
+
+
+
 \subsection{Алгоритм <<Kamada-Kawai>>}
 
 \section{Разработка приложения визуализации связей пользователей социальной сети}
+
+
+
+
 \section{Реализация приложения визуализации связей пользователей социальной сети}
+
+Для реализация приложения был выбран язык TypeScript. Для визуализации графа используется библиотека Cytoscape.js \cite{Cytoscapejs}
+
+\begin{figure}[H]
+\centering
+  \begin{minipage}[t]{.8\textwidth}
+  \centering
+\includegraphics[width=.7\textwidth]{./imgs/eades_result.png}
+  \end{minipage}
+\caption{Результат работы алгоритма Идса на 65 пользователях.}
+\label{fig:eades_result}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+\centering
+  \begin{minipage}[t]{.8\textwidth}
+  \centering
+\includegraphics[width=.7\textwidth]{./imgs/fu_result.png}
+  \end{minipage}
+\caption{Результат работы алгоритма Фрюхтермана-Рейнгольда на 65 пользователях.}
+\label{fig:fr_result}
+\end{figure}
+
 
 \newpage
 \anonsection{ЗАКЛЮЧЕНИЕ}  %Заключение
