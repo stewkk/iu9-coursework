@@ -6,6 +6,9 @@ all: build
 
 build:
 	@latexmk -f -pdf -output-directory=build -shell-escape ./report.tex
+
+build-presentation:
+	@latexmk -f -pdf -output-directory=build -shell-escape ./presentation.tex
 	
 clean:
 	@rm -rf build

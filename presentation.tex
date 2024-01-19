@@ -1,0 +1,164 @@
+\documentclass{beamer}
+\usetheme{metropolis}           % Use metropolis theme
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english, main=russian]{babel}
+
+\usepackage{algorithm, algorithmicx}
+\usepackage[noend]{algpseudocode}
+\usepackage{amsmath}
+
+\title{Визуализация графа связей пользователей социальной сети}
+\date{\today}
+\author{Киселев Кирилл}
+\institute{МГТУ им. Н.Э. Баумана}
+\begin{document}
+\maketitle
+\section{First Section}
+\begin{frame}{Проблематика визуализации графов}
+\end{frame}
+
+\begin{frame}{Силовые алгоритмы}
+\end{frame}
+
+\begin{frame}{Алгоритм Идеса}
+	\begin{algorithm}[H]
+		\begin{algorithmic}
+			{\ttfamily \small{
+					\Function{$f_{spring}$}{$p_u, p_v$}
+					\State $r \gets c_{spring}\log{\frac{\|p_v - p_u \|}{l}}  \cdot \overrightarrow{p_u p_v}$
+
+					\Return $r$
+					\EndFunction
+
+
+					\Function{$f_{rep}$}{$p_u, p_v$}
+					\State $r \gets \frac{c_{rep}}{\|p_v - p_u \|} \cdot \overrightarrow{p_u p_v}  $
+
+					\Return $r$
+					\EndFunction
+
+
+					\Function{Eades}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
+					\State $t \gets 1$
+					\While{$t \leq K$}
+
+					\For{$u \in V$}
+					\State $F_{u}(t) \gets \sum_{v:\{u,v\} \notin E}{f_{rep}(u, v)} + \sum_{v:\{u,v\} \in E}{f_{spring}(u, v)}$
+
+
+					\EndFor
+					\For{$u \in V$}
+					\State $p_u \gets p_u + \delta \cdot F_u(t)$
+					\EndFor
+
+					\State $t \gets t + 1$
+					\EndWhile
+					\Return $p$
+					\EndFunction
+
+				}}
+
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+\begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
+	\begin{algorithm}[H]
+		\caption{Основной алгоритм}
+		\begin{algorithmic}
+
+			{\ttfamily \small{
+					\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
+					\State $t \gets 1$
+					\While{$k \leq K$}
+
+					\For{$u \in V$}
+					\State $F_{u}(k) \gets \sum_{v \in V}{f_{rep}(u, v)} + \sum_{v:\{u,v\} \in E}{f_{attr}(u, v)}$
+
+
+					\EndFor
+					\For{$u \in V$}
+					\State $p_u \gets p_u + \delta(t) \cdot F_u(k)$
+					\EndFor
+
+					\State $t \gets cool(t)$
+					\State $k \gets k + 1$
+					\EndWhile
+					\Return $p$
+					\EndFunction
+				}}
+
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+\begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
+	\begin{algorithm}[H]
+		\caption{Функции нахождения сил притяжения и отталкивания}
+		\begin{algorithmic}
+
+			\Function{$f_{rep}$}{$p_u, p_v$}
+			\State $r \gets \frac{l^2}{\|p_v - p_u \|}  \cdot \overrightarrow{p_v p_u}  $
+
+			\Return $r$
+			\EndFunction
+
+
+			\Function{$f_{attr}$}{$p_u, p_v$}
+			\State $r \gets \frac{\|p_v - p_u \|^2}{l} \cdot \overrightarrow{p_u p_v}  $
+
+			\Return $r$
+			\EndFunction
+
+		\end{algorithmic}
+	\end{algorithm}
+\end{frame}
+\begin{frame}{Алгоритм Камады-Кавай}
+	\begin{algorithm}[H]
+		\caption{Алгоритм Камада-Кавай}
+		\begin{algorithmic}
+
+			{\ttfamily \small{
+					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$, $K$}
+					\State $d \gets FloydWarshall(G)$
+
+					\State \For{$i \leq |V|$}
+					\For{$j \leq |V|$}
+					\If{$i \ne j$}
+					\State $l_{i,j} \gets d_{i, j} \times \frac{L_0}{max_{i_1 < j_1}(d_{i_1, j_1})} $
+					\State $k_{i,j} \gets \frac{K}{d^{2}_{i, j}} $
+
+					\EndIf
+
+
+					\EndFor
+					\EndFor
+
+					\State \While{$max_i \Delta_i$ > $\varepsilon$}
+
+					\State $\Delta_m \gets max_i \Delta_i$
+					\While{$\Delta_m$ > $\varepsilon$}
+					\State $\text{Вычислить} \ \delta x, \delta y \ \text{решив следующую систему}$
+
+					\State $ \frac{\partial^2 E}{\partial x^{2}_m}(x_m, y_m)\delta x + \frac{\partial^2 E}{\partial x_m \partial y_m}(x_m, y_m)\delta y = -\frac{\partial E}{\partial x_m}(x_m, y_m) $
+					\State $ \frac{\partial^2 E}{\partial y_m \partial x_m}(x_m, y_m)\delta x + \frac{\partial^2 E}{\partial y^{2}_m}(x_m, y_m)\delta y = -\frac{\partial E}{\partial y_m}(x_m, y_m) $
+
+					\State $p_m.x = p_m.x + \delta x$
+					\State $p_m.y = p_m.y + \delta y$
+					\EndWhile
+					\EndWhile
+
+					\State \Return $p$
+					\EndFunction
+				}}
+
+		\end{algorithmic}
+	\end{algorithm}
+
+
+\end{frame}
+
+
+
+
+\end{document}
