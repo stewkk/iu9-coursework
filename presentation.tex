@@ -5,9 +5,18 @@
 \usepackage[utf8]{inputenc}
 \usepackage[english, main=russian]{babel}
 
-\usepackage{algorithm, algorithmicx}
+\usepackage{listingsutf8}
+\usepackage[ruled]{algorithm}
+\usepackage{algorithmicx}
 \usepackage[noend]{algpseudocode}
 \usepackage{amsmath}
+\usepackage{caption} 
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+
+\floatname{algorithm}{Листинг}
+\renewcommand{\algorithmname}{Листинг}
 
 \title{Визуализация графа связей пользователей социальной сети}
 \date{\today}
@@ -15,16 +24,38 @@
 \institute{МГТУ им. Н.Э. Баумана}
 \begin{document}
 \maketitle
-\section{First Section}
+
 \begin{frame}{Проблематика визуализации графов}
+
+	\begin{itemize}
+		\item Минимимальность пересечений ребер;
+		\item Равномерность распределение вершин;
+		\item Однородность длин ребер;
+		\item Наличие симметрии.
+	\end{itemize}
+
+
 \end{frame}
 
 \begin{frame}{Силовые алгоритмы}
+
+	\alert{Силовые алгоритмы} визуализации графов оперируют основными принципами \textbf{сил} и \textbf{энергии} в физическом смысле, чтобы достичь оптимального распределения узлов и рёбер в графе.
+
+	\begin{enumerate}
+		\item Инициализация
+		\item Определение сил
+		\item Обновление координат
+		\item Итерация
+	\end{enumerate}
+
+
 \end{frame}
 
 \begin{frame}{Алгоритм Идеса}
 	\begin{algorithm}[H]
-		\begin{algorithmic}
+    \floatname{algorithm}{MegaAlgorithm}
+    \caption{Алгоритм Идеса}
+    \begin{algorithmic}[1]
 			{\ttfamily \small{
 					\Function{$f_{spring}$}{$p_u, p_v$}
 					\State $r \gets c_{spring}\log{\frac{\|p_v - p_u \|}{l}}  \cdot \overrightarrow{p_u p_v}$
@@ -66,7 +97,7 @@
 \begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
 	\begin{algorithm}[H]
 		\caption{Основной алгоритм}
-		\begin{algorithmic}
+    \begin{algorithmic}[1]
 
 			{\ttfamily \small{
 					\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
@@ -94,8 +125,8 @@
 \end{frame}
 \begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
 	\begin{algorithm}[H]
-		\caption{Функции нахождения сил притяжения и отталкивания}
-		\begin{algorithmic}
+		\caption{Нахождение сил притяжения и отталкивания}
+    \begin{algorithmic}[1]
 
 			\Function{$f_{rep}$}{$p_u, p_v$}
 			\State $r \gets \frac{l^2}{\|p_v - p_u \|}  \cdot \overrightarrow{p_v p_u}  $
@@ -122,17 +153,8 @@
 					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$, $K$}
 					\State $d \gets FloydWarshall(G)$
 
-					\State \For{$i \leq |V|$}
-					\For{$j \leq |V|$}
-					\If{$i \ne j$}
-					\State $l_{i,j} \gets d_{i, j} \times \frac{L_0}{max_{i_1 < j_1}(d_{i_1, j_1})} $
-					\State $k_{i,j} \gets \frac{K}{d^{2}_{i, j}} $
-
-					\EndIf
-
-
-					\EndFor
-					\EndFor
+					\State $initialize(l_{i, j})$
+					\State $initialize(k_{i, j})$
 
 					\State \While{$max_i \Delta_i$ > $\varepsilon$}
 
@@ -155,10 +177,126 @@
 		\end{algorithmic}
 	\end{algorithm}
 
+\end{frame}
+
+\begin{frame}{Пример работы программы}
+
+	\begin{figure}[H]
+		\centering
+		\begin{subfigure}[b]{0.48\textwidth}
+			% \begin{minipage}[t]{.25\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/fr.png}
+			% \captionsetup{font=small}
+			\caption*{алгоритм Фрюхтермана-Рейнгольда.}
+		\end{subfigure}
+		% \noindent
+		\begin{subfigure}[b]{0.50\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/kk.png}
+			\captionsetup{font=small}
+			\caption*{алгоритм Камады-Кавай.}
+		\end{subfigure}
+		\caption{Результат работы программы}
+	\end{figure}
+
 
 \end{frame}
 
+\begin{frame}{Сравнение с Graphviz}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/fg_k6.png}
+			\caption*{алгоритм Фрюхтермана-Рейнгольда.}
+		\end{minipage}
+		\noindent
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/kk_k6.png}
+			\caption*{алгоритм Камады-Кавай.}
+		\end{minipage}
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/k6_gv.png}
+			\caption*{Graphviz.}
+		\end{minipage}
+		\caption{Результат работы программы на полном графе.}
+	\end{figure}
+\end{frame}
 
+
+
+\begin{frame}{Сравнение с Graphviz}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=0.75\linewidth]{./imgs/fg_small_dense.png}
+			\caption*{алгоритм Фрюхтермана-Рейнгольда}
+		\end{minipage}
+		\noindent
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=0.9\linewidth]{./imgs/kk_small_dense.png}
+			\caption*{алгоритм Камады-Кавай}
+		\end{minipage}
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=1.4\linewidth]{./imgs/small_dense_gv.png}
+			\caption*{Graphviz}
+		\end{minipage}
+		\caption{Результат работы программы на небольшом плотном графе.}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Сравнение с Graphviz}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/fr_btree.png}
+			\caption*{алгоритм Фрюхтермана-Рейнгольда}
+		\end{minipage}
+		\noindent
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/kk_btree.png}
+			\caption*{алгоритм Камады-Кавай}
+		\end{minipage}
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/bin_tree_gv.png}
+			\caption*{Graphviz.}
+		\end{minipage}
+		\caption{Результат работы программы на бинарном дереве.}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Сравнение с Graphviz}
+
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/fr_quad_tree.png}
+			\caption*{алгоритм Фрюхтермана-Рейнгольда}
+		\end{minipage}
+		\noindent
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/kk_quad_tree.png}
+			\caption*{алгоритм Камады-Кавай}
+		\end{minipage}
+		\begin{minipage}[t]{.32\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/quad_tree_gv.png}
+			\caption*{Graphviz}
+		\end{minipage}
+		\caption{Результат работы программы на k-арном дереве, при k=4.}
+	\end{figure}
+\end{frame}
 
 
 \end{document}
