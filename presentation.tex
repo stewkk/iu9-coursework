@@ -41,21 +41,24 @@
 
 	\alert{Силовые алгоритмы} визуализации графов оперируют основными принципами \textbf{сил} и \textbf{энергии} в физическом смысле, чтобы достичь оптимального распределения узлов и рёбер в графе.
 
-	\begin{enumerate}
+  \begin{alertblock}{Основные этапы работы}
+    \begin{enumerate}
 		\item Инициализация
 		\item Определение сил
 		\item Обновление координат
 		\item Итерация
 	\end{enumerate}
+  \end{alertblock}
+	
 
 
 \end{frame}
 
 \begin{frame}{Алгоритм Идеса}
 	\begin{algorithm}[H]
-    \floatname{algorithm}{MegaAlgorithm}
-    \caption{Алгоритм Идеса}
-    \begin{algorithmic}[1]
+		\floatname{algorithm}{MegaAlgorithm}
+		\caption{Алгоритм Идеса}
+		\begin{algorithmic}[1]
 			{\ttfamily \small{
 					\Function{$f_{spring}$}{$p_u, p_v$}
 					\State $r \gets c_{spring}\log{\frac{\|p_v - p_u \|}{l}}  \cdot \overrightarrow{p_u p_v}$
@@ -97,7 +100,7 @@
 \begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
 	\begin{algorithm}[H]
 		\caption{Основной алгоритм}
-    \begin{algorithmic}[1]
+		\begin{algorithmic}[1]
 
 			{\ttfamily \small{
 					\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
@@ -126,7 +129,7 @@
 \begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
 	\begin{algorithm}[H]
 		\caption{Нахождение сил притяжения и отталкивания}
-    \begin{algorithmic}[1]
+		\begin{algorithmic}[1]
 
 			\Function{$f_{rep}$}{$p_u, p_v$}
 			\State $r \gets \frac{l^2}{\|p_v - p_u \|}  \cdot \overrightarrow{p_v p_u}  $
@@ -147,7 +150,7 @@
 \begin{frame}{Алгоритм Камады-Кавай}
 	\begin{algorithm}[H]
 		\caption{Алгоритм Камада-Кавай}
-		\begin{algorithmic}
+		\begin{algorithmic}[1]
 
 			{\ttfamily \small{
 					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$, $K$}
@@ -179,6 +182,29 @@
 
 \end{frame}
 
+
+\begin{frame}{Архитектура приложения }
+
+	\begin{figure}
+		\begin{minipage}{0.5\textwidth}
+			\begin{alertblock}{Этапы работы приложения}
+        \begin{enumerate}
+          \item Сбор данных социлаьной сети
+          \item Преобразование полученных данных в структуры ЯП
+          \item Обработка данных силовым алгоритмом
+          \item Отображение графа
+        \end{enumerate}
+			\end{alertblock}
+		\end{minipage}
+		\hfill
+		\begin{minipage}{0.477777777\textwidth}
+			\centering
+			\includegraphics[width=\linewidth]{./imgs/app_scheme.png}
+			\caption{Схема работы приложения}
+		\end{minipage}
+	\end{figure}
+
+\end{frame}
 \begin{frame}{Пример работы программы}
 
 	\begin{figure}[H]
