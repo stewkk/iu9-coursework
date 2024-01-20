@@ -785,7 +785,7 @@
 
 
 				\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
-				\State $t \gets 1$
+        \State $t \gets initialize_t(G)$
 				\While{$k \leq K$}
 
 				\For{$u \in V$}
@@ -865,7 +865,7 @@
 			\caption{Алгоритм Камада-Кавай}
 			\begin{algorithmic}
 
-				\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$, $K$}
+				\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$}
 				\State $d \gets FloydWarshall(G)$
 
 				\State \For{$i \leq |V|$}
@@ -1175,14 +1175,14 @@
 		\caption*{а) алгоритм Фрюхтермана-Рейнгольда.}
 	\end{minipage}
 	\noindent
-	\begin{minipage}[t]{.50\textwidth}
+	\begin{minipage}[t]{.45\linewidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/kk_k6.png}
+		\includegraphics[width=\textwidth]{./imgs/kk_k6.png}
 		\caption*{б) алгоритм Камады-Кавай.}
 	\end{minipage}
 	\begin{minipage}[t]{.45\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/k6_gv.png}
+		\includegraphics[width=\linewidth]{./imgs/k6_gv.png}
 		\caption*{в) программа Graphviz.}
 	\end{minipage}
 	\caption{Результат работы программы на полном графе.}
@@ -1196,20 +1196,20 @@
 
 \begin{figure}[H]
 	\centering
-	\begin{minipage}[t]{.45\textwidth}
+	\begin{minipage}[t]{.35\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/fg_small_dense.png}
+		\includegraphics[width=\linewidth]{./imgs/fg_small_dense.png}
 		\caption*{а) алгоритм Фрюхтермана-Рейнгольда.}
 	\end{minipage}
 	\noindent
-	\begin{minipage}[t]{.50\textwidth}
+	\begin{minipage}[t]{.40\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/kk_small_dense.png}
+		\includegraphics[width=\linewidth]{./imgs/kk_small_dense.png}
 		\caption*{б) алгоритм Камады-Кавай.}
 	\end{minipage}
 	\begin{minipage}[t]{.55\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/small_dense_gv.png}
+		\includegraphics[width=\linewidth]{./imgs/small_dense_gv.png}
 		\caption*{в) программа Graphviz.}
 	\end{minipage}
 	\caption{Результат работы программы на небольшом плотном графе.}
@@ -1224,20 +1224,20 @@
 
 \begin{figure}[H]
 	\centering
-	\begin{minipage}[t]{.45\textwidth}
+	\begin{minipage}[t]{.43\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/fr_btree.png}
+		\includegraphics[width=\linewidth]{./imgs/fr_btree.png}
 		\caption*{а) алгоритм Фрюхтермана-Рейнгольда.}
 	\end{minipage}
 	\noindent
-	\begin{minipage}[t]{.50\textwidth}
+	\begin{minipage}[t]{.56\linewidth}
 		\centering
 		\includegraphics[width=0.75\textwidth]{./imgs/kk_btree.png}
 		\caption*{б) алгоритм Камады-Кавай.}
 	\end{minipage}
 	\begin{minipage}[t]{.55\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/bin_tree_gv.png}
+		\includegraphics[width=\linewidth]{./imgs/bin_tree_gv.png}
 		\caption*{в) программа Graphviz.}
 	\end{minipage}
 	\caption{Результат работы программы на бинарном дереве.}
@@ -1250,20 +1250,20 @@
 
 \begin{figure}[H]
 	\centering
-	\begin{minipage}[t]{.45\textwidth}
+	\begin{minipage}[t]{.48\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/fr_quad_tree.png}
+		\includegraphics[width=\linewidth]{./imgs/fr_quad_tree.png}
 		\caption*{а) алгоритм Фрюхтермана-Рейнгольда.}
 	\end{minipage}
 	\noindent
 	\begin{minipage}[t]{.50\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/kk_quad_tree.png}
+		\includegraphics[width=\linewidth]{./imgs/kk_quad_tree.png}
 		\caption*{б) алгоритм Камады-Кавай.}
 	\end{minipage}
 	\begin{minipage}[t]{.55\textwidth}
 		\centering
-		\includegraphics[width=0.75\textwidth]{./imgs/quad_tree_gv.png}
+		\includegraphics[width=\linewidth]{./imgs/quad_tree_gv.png}
 		\caption*{в) программа Graphviz.}
 	\end{minipage}
 	\caption{Результат работы программы на k-арном дереве, при k=4.}

@@ -21,11 +21,29 @@
 \title{Визуализация графа связей пользователей социальной сети}
 \date{\today}
 \author{Киселев Кирилл}
-\institute{МГТУ им. Н.Э. Баумана}
+\author[me]{Выполнил: Киселев Кирилл ИУ9-51Б\\[1mm]Руководитель: Каганов Ю.Т.}
+% \thanks
+% \institute{МГТУ им. Н.Э. Баумана}
 \begin{document}
 \maketitle
 
-\begin{frame}{Проблематика визуализации графов}
+\begin{frame}{Цели и задачи}
+  \metroset{block=fill}
+	\begin{alertblock}{Цель}
+		Реализовать приложение позволяющее визуализировать данные о связях пользователей социальной сети в виде графа.
+	\end{alertblock}
+	\begin{alertblock}{Задачи}
+    
+		\begin{itemize}
+			\item Сформулировать критерии качества визуализации графа;
+			\item Изучить способы визуализции графов;
+			\item Реализовать несколько алгоритмов визуализации графов;
+			\item Сравнить реализованное решение с существущими;
+		\end{itemize}
+	\end{alertblock}
+\end{frame}
+
+\begin{frame}{Критерии качества визуализации}
 
 	\begin{itemize}
 		\item Минимимальность пересечений ребер;
@@ -33,23 +51,22 @@
 		\item Однородность длин ребер;
 		\item Наличие симметрии.
 	\end{itemize}
-
-
 \end{frame}
 
 \begin{frame}{Силовые алгоритмы}
 
 	\alert{Силовые алгоритмы} визуализации графов оперируют основными принципами \textbf{сил} и \textbf{энергии} в физическом смысле, чтобы достичь оптимального распределения узлов и рёбер в графе.
 
-  \begin{alertblock}{Основные этапы работы}
-    \begin{enumerate}
-		\item Инициализация
-		\item Определение сил
-		\item Обновление координат
-		\item Итерация
-	\end{enumerate}
-  \end{alertblock}
-	
+  \metroset{block=fill}
+	\begin{alertblock}{Основные этапы работы}
+		\begin{enumerate}
+			\item Инициализация
+			\item Определение сил
+			\item Обновление координат
+			\item Итерация
+		\end{enumerate}
+	\end{alertblock}
+
 
 
 \end{frame}
@@ -104,7 +121,7 @@
 
 			{\ttfamily \small{
 					\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
-					\State $t \gets 1$
+          \State $t \gets initialize_t(G)$
 					\While{$k \leq K$}
 
 					\For{$u \in V$}
@@ -153,7 +170,7 @@
 		\begin{algorithmic}[1]
 
 			{\ttfamily \small{
-					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$, $K$}
+					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$}
 					\State $d \gets FloydWarshall(G)$
 
 					\State $initialize(l_{i, j})$
@@ -188,16 +205,16 @@
 	\begin{figure}
 		\begin{minipage}{0.5\textwidth}
 			\begin{alertblock}{Этапы работы приложения}
-        \begin{enumerate}
-          \item Сбор данных социлаьной сети
-          \item Преобразование полученных данных в структуры ЯП
-          \item Обработка данных силовым алгоритмом
-          \item Отображение графа
-        \end{enumerate}
+				\begin{enumerate}
+					\item Сбор данных социлаьной сети
+					\item Преобразование полученных данных в структуры ЯП
+					\item Обработка данных силовым алгоритмом
+					\item Отображение графа
+				\end{enumerate}
 			\end{alertblock}
 		\end{minipage}
 		\hfill
-		\begin{minipage}{0.477777777\textwidth}
+		\begin{minipage}{0.47\textwidth}
 			\centering
 			\includegraphics[width=\linewidth]{./imgs/app_scheme.png}
 			\caption{Схема работы приложения}
@@ -301,7 +318,6 @@
 \end{frame}
 
 \begin{frame}{Сравнение с Graphviz}
-
 	\begin{figure}[H]
 		\centering
 		\begin{minipage}[t]{.32\textwidth}
@@ -323,6 +339,26 @@
 		\caption{Результат работы программы на k-арном дереве, при k=4.}
 	\end{figure}
 \end{frame}
+
+\begin{frame}{Заключение}
+  \begin{alertblock}{Возможные улучшения}
+  \begin{itemize}
+    \item Покрытие кода модульными тестами; 
+    \item Написание модулей сбора данных для большего числа соц. сетей; 
+    \item Графическое выделение сообществ пользователей; 
+  \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Заключение}
+  В ходе разработки были получены следующие навыки:
+    \begin{itemize}
+      \item Разработка силовых алгоритмов и их применение к задаче визуализации связей пользователей соц. сетей;
+      \item Разработка на языке TypeScript;
+      \item Использование библиотеки Cytoscape.js для визуализации графовых данных;
+    \end{itemize}
+\end{frame}
+
 
 
 \end{document}
