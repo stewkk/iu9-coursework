@@ -1,6 +1,7 @@
 package inotify
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"strings"
@@ -16,11 +17,10 @@ import (
 
 type Watch struct {
 	events chan<- Event
-	inotify *os.File
-	buf inotifyBuffer
-
 	logger *slog.Logger
 
+	inotify *os.File
+	buf *inotifyBuffer
 	nameByWatchDescriptor map[int] string
 }
 
@@ -43,7 +43,7 @@ func NewWatch(events chan<- Event, logger *slog.Logger) (Watch, error) {
 	w := Watch{
 		events:                events,
 		inotify:               os.NewFile(uintptr(fd), uuid.NewString()),
-		buf:                   inotifyBuffer{},
+		buf:                   &inotifyBuffer{},
 		logger:                logger,
 		nameByWatchDescriptor: make(map[int]string),
 	}
@@ -59,10 +59,11 @@ type inotifyEvent struct {
 	name string
 }
 
-func (w *Watch) getEventName(event *unix.InotifyEvent) string {
+func (w *Watch) readEventName(event *unix.InotifyEvent) string {
 	if event.Len == 0 {
 		name, ok := w.nameByWatchDescriptor[int(event.Wd)]
 		if !ok {
+			w.logger.Error("Watch descriptor not found", "wd", int(event.Wd))
 			panic("failed to determine file name of event: watch decriptor not found")
 		}
 		return name
@@ -76,21 +77,28 @@ func (w *Watch) getEventName(event *unix.InotifyEvent) string {
 }
 
 func (w *Watch) readEvent() (*inotifyEvent, error)  {
-	buf := &w.buf
+	buf := w.buf
 	if buf.offset >= buf.numRead {
-		buf.data = make([]byte, 10*(syscall.SizeofInotifyEvent+unix.NAME_MAX+1))
+		buf.data = make([]byte, 10*(syscall.SizeofInotifyEvent+unix.NAME_MAX+1)) // NOTE: maybe reuse memory here?
 		var err error
 		buf.numRead, err = w.inotify.Read(buf.data)
-		if err != nil || buf.numRead == 0 {
+		if err != nil {
 			return nil, err
 		}
+		if buf.numRead == 0 {
+			return nil, errors.New("read() from inotify returned 0")
+		}
 		buf.offset = 0
+		w.logger.Debug("Successful read() from inotify", "numRead", buf.numRead)
 	}
 
 	var event inotifyEvent
 	event.InotifyEvent = (*unix.InotifyEvent)(unsafe.Pointer(&buf.data[buf.offset]))
 	buf.offset += syscall.SizeofInotifyEvent
-	event.name = w.getEventName(event.InotifyEvent)
+	event.name = w.readEventName(event.InotifyEvent)
+
+	w.logger.Debug("Read event", "wd", event.Wd, "name", event.name, "len", event.Len,
+	"flags", event.Mask)
 
 	return &event, nil
 }
@@ -108,12 +116,14 @@ func (w *Watch) serveEvents() {
 	}
 }
 
-func (w *Watch) Subscribe(path string) {
+func (w *Watch) Subscribe(path string) error {
 	wd, err := unix.InotifyAddWatch(int(w.inotify.Fd()), path, unix.IN_CREATE|unix.IN_MODIFY|unix.IN_DELETE|unix.IN_MOVED_TO|unix.IN_MOVED_FROM|unix.IN_MOVE)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	w.nameByWatchDescriptor[wd] = path
+	w.logger.Info("Subscribed to new path", "wd", wd, "path", path)
+	return nil
 }
 
 type InotifyTestSuite struct {
@@ -128,6 +138,9 @@ func (s *InotifyTestSuite) SetupTest() {
 	}
 
 	s.root = root
+
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(h))
 }
 
 func (s *InotifyTestSuite) TearDownTest() {
@@ -159,8 +172,9 @@ func (s *InotifyTestSuite) TestCanSubscribeToDirectory() {
 
 func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	events := make(chan Event)
-	w, _ := NewWatch(events, slog.Default())
+	w, err := NewWatch(events, slog.Default())
 	w.Subscribe(s.root)
+	require.Nil(s.T(), err)
 	path := s.root+"/test"
 	file, _ := os.Create(path)
 	defer os.Remove(file.Name())
