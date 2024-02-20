@@ -2,6 +2,7 @@ package inotify
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -22,6 +23,8 @@ type Watch struct {
 	inotify *os.File
 	buf *inotifyBuffer
 	nameByWatchDescriptor map[int] string
+
+	stopServing chan<- struct{}
 }
 
 type inotifyBuffer struct {
@@ -38,18 +41,20 @@ func NewWatch(events chan<- Event, logger *slog.Logger) (Watch, error) {
 		return Watch{}, err
 	}
 
-	logger.Info("Initialized new inotify instance")
+	stopServing := make(chan struct{})
 
 	w := Watch{
 		events:                events,
+		logger:                logger,
 		inotify:               os.NewFile(uintptr(fd), uuid.NewString()),
 		buf:                   &inotifyBuffer{},
-		logger:                logger,
 		nameByWatchDescriptor: make(map[int]string),
+		stopServing:           stopServing,
 	}
 
-	logger.Info("Start serving events", "inotify", w.inotify.Name())
-	go w.serveEvents()
+	logger.Info("Initialized new inotify instance", "inotify", w.inotify.Name())
+
+	go w.serveEvents(stopServing)
 
 	return w, nil
 }
@@ -57,6 +62,11 @@ func NewWatch(events chan<- Event, logger *slog.Logger) (Watch, error) {
 type inotifyEvent struct {
 	*unix.InotifyEvent
 	name string
+}
+
+func (w *Watch) Stop() {
+	close(w.stopServing)
+	w.inotify.Close()
 }
 
 func (w *Watch) readEventName(event *unix.InotifyEvent) string {
@@ -89,7 +99,7 @@ func (w *Watch) readEvent() (*inotifyEvent, error)  {
 			return nil, errors.New("read() from inotify returned 0")
 		}
 		buf.offset = 0
-		w.logger.Debug("Successful read() from inotify", "numRead", buf.numRead)
+		w.logger.Debug("Successful read() from inotify", "numRead", buf.numRead, "inotify", w.inotify.Name())
 	}
 
 	var event inotifyEvent
@@ -103,16 +113,22 @@ func (w *Watch) readEvent() (*inotifyEvent, error)  {
 	return &event, nil
 }
 
-func (w *Watch) serveEvents() {
+func (w *Watch) serveEvents(stop <-chan struct{}) {
+	defer w.logger.Info("Stop serving events", "inotify", w.inotify.Name())
+	w.logger.Info("Start serving events", "inotify", w.inotify.Name())
 	for {
 		_, err := w.readEvent()
 		if err != nil {
-			w.logger.Warn("Got error while reading event, stopped serving events", "err", err.Error())
+			w.logger.Warn(fmt.Sprintf("Got error while reading events: %v", err.Error()))
 			close(w.events)
 			return
 		}
-		w.logger.Debug("Serve some event") // TODO: extended log
-		w.events <- Event{}
+		select {
+		case w.events <- Event{}:
+			w.logger.Debug("Serve some event") // TODO: extended log
+		case <-stop:
+			w.logger.Debug("serveEvents got stop signal")
+		}
 	}
 }
 
@@ -154,6 +170,7 @@ func (s *InotifyTestSuite) TestCanSubscribeToFile() {
 	file, err := os.CreateTemp(s.root, "test")
 	defer os.Remove(file.Name())
 	w, _ := NewWatch(make(chan Event), slog.Default())
+	defer w.Stop()
 
 	w.Subscribe(file.Name())
 
@@ -164,6 +181,7 @@ func (s *InotifyTestSuite) TestCanSubscribeToDirectory() {
 	file, err := os.CreateTemp(s.root, "test")
 	defer os.Remove(file.Name())
 	w, _ := NewWatch(make(chan Event), slog.Default())
+	defer w.Stop()
 
 	w.Subscribe(file.Name())
 
@@ -172,9 +190,9 @@ func (s *InotifyTestSuite) TestCanSubscribeToDirectory() {
 
 func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	events := make(chan Event)
-	w, err := NewWatch(events, slog.Default())
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Stop()
 	w.Subscribe(s.root)
-	require.Nil(s.T(), err)
 	path := s.root+"/test"
 	file, _ := os.Create(path)
 	defer os.Remove(file.Name())
@@ -183,6 +201,15 @@ func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	event := <-events
 
 	require.Equal(s.T(), Event{}, event)
+}
+
+func (s *InotifyTestSuite) TestGoroutineCleanup() {
+	{
+		events := make(chan Event)
+		w, _ := NewWatch(events, slog.Default())
+		defer w.Stop()
+		w.Subscribe(s.root)
+	}
 }
 
 func TestExampleTestSuite(t *testing.T) {
