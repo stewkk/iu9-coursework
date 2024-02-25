@@ -1,0 +1,34 @@
+=== RUN   TestExampleTestSuite
+=== RUN   TestExampleTestSuite/TestCanSubscribeToDirectory
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Initialized new inotify instance" inotify=a642f13d-187a-45af-9a08-a2be1b9b235a
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Subscribed to new path" wd=1 path=/tmp/inotify-go2981256911/test1174819202
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Start serving events" inotify=a642f13d-187a-45af-9a08-a2be1b9b235a
+=== RUN   TestExampleTestSuite/TestCanSubscribeToFile
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Initialized new inotify instance" inotify=8f08ee26-ed7d-484e-92c4-40972a6e0fd6
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Subscribed to new path" wd=1 path=/tmp/inotify-go3523688213/test719553435
+=== RUN   TestExampleTestSuite/TestGoroutineCleanup
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Initialized new inotify instance" inotify=d7b1a661-6dce-40f0-a21f-4632b7813fb0
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Subscribed to new path" wd=1 path=/tmp/inotify-go3818296999
+=== RUN   TestExampleTestSuite/TestServeFileCreateEvent
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Start serving events" inotify=8f08ee26-ed7d-484e-92c4-40972a6e0fd6
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Start serving events" inotify=d7b1a661-6dce-40f0-a21f-4632b7813fb0
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Initialized new inotify instance" inotify=622dbdc0-c597-4227-a0d0-0d3578fffa3f
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Subscribed to new path" wd=1 path=/tmp/inotify-go1827385869
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Successful read() from inotify" numRead=16 inotify=d7b1a661-6dce-40f0-a21f-4632b7813fb0
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Read event" wd=1 name=/tmp/inotify-go3818296999 len=0 flags=32768
+time=2024-02-25T18:25:13.347+03:00 level=INFO msg="Start serving events" inotify=622dbdc0-c597-4227-a0d0-0d3578fffa3f
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Successful read() from inotify" numRead=32 inotify=622dbdc0-c597-4227-a0d0-0d3578fffa3f
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Read event" wd=1 name=test len=16 flags=256
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Serve some event"
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Successful read() from inotify" numRead=32 inotify=622dbdc0-c597-4227-a0d0-0d3578fffa3f
+time=2024-02-25T18:25:13.347+03:00 level=DEBUG msg="Read event" wd=1 name=test len=16 flags=512
+--- PASS: TestExampleTestSuite (0.00s)
+    --- PASS: TestExampleTestSuite/TestCanSubscribeToDirectory (0.00s)
+    --- PASS: TestExampleTestSuite/TestCanSubscribeToFile (0.00s)
+    --- PASS: TestExampleTestSuite/TestGoroutineCleanup (0.00s)
+    --- PASS: TestExampleTestSuite/TestServeFileCreateEvent (0.00s)
+PASS
+ok  	github.com/stewkk/iu9-coursework/pkg/inotify	0.011s
+make: Leaving directory '/home/st/c/iu9-coursework'
+
+Compilation finished at Sun Feb 25 18:25:13
