@@ -69,9 +69,44 @@ func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	event := <-events
 
 	require.Equal(s.T(), CreateEvent{
-		eventBase: eventBase{
-			Path: file.Name(),
-		},
+		Path: file.Name(),
+	}, event)
+}
+
+func (s *InotifyTestSuite) TestServeFileDeleteEvent() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	file, _ := os.CreateTemp(s.root, "test")
+	file.Close()
+	w.Subscribe(s.root)
+
+	os.Remove(file.Name())
+	event := <-events
+
+	require.Equal(s.T(), DeleteEvent{
+		Path: file.Name(),
+	}, event)
+}
+
+func (s *InotifyTestSuite) TestServeDeleteSelfEvent() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	dir, _ := os.MkdirTemp(s.root, "test")
+	w.Subscribe(s.root)
+	w.Subscribe(dir)
+
+	os.Remove(dir)
+	event := <-events
+	event2 := <-events
+	w.logger.Debug("got event", "value", event2)
+	event3 := <-events
+	w.logger.Debug("got event", "value", event3)
+
+	require.Equal(s.T(), DeleteEvent{
+		Path:      dir,
+		IsWatched: true,
 	}, event)
 }
 

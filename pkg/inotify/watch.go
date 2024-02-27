@@ -44,7 +44,7 @@ func NewWatch(events chan<- Event, logger *slog.Logger) (Watch, error) {
 }
 
 func (w *Watch) Subscribe(path string) error {
-	wd, err := unix.InotifyAddWatch(int(w.inotify.Fd()), path, unix.IN_CREATE|unix.IN_MODIFY|unix.IN_DELETE|unix.IN_MOVED_TO|unix.IN_MOVED_FROM|unix.IN_MOVE)
+	wd, err := unix.InotifyAddWatch(int(w.inotify.Fd()), path, unix.IN_ALL_EVENTS)
 	if err != nil {
 		return err
 	}

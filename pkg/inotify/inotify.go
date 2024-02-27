@@ -22,6 +22,14 @@ type inotifyEvent struct {
 	name string
 }
 
+func (e inotifyEvent) Contains(masks... int) bool {
+	var mask int
+	for _, s := range masks {
+		mask |= s
+	}
+	return (int(e.Mask)&mask) != 0
+}
+
 func (w *Watch) readEventName(event *unix.InotifyEvent) string {
 	if event.Len == 0 {
 		name, ok := w.nameByWatchDescriptor[int(event.Wd)]
@@ -65,15 +73,45 @@ func (w *Watch) readEvent() (*inotifyEvent, error)  {
 	return &event, nil
 }
 
-func (w *Watch) convertInotifyEvent(inotifyEvent *inotifyEvent) Event {
+func (w *Watch) convertToEvent(inotifyEvent *inotifyEvent) Event {
 	dir, ok := w.nameByWatchDescriptor[int(inotifyEvent.Wd)]
 	if !ok {
 		panic("failed to determine dir of event: watch decriptor not found")
 	}
-	return CreateEvent{
-		eventBase{
+	switch {
+	case inotifyEvent.Contains(unix.IN_ACCESS):
+		return "acess"
+	case inotifyEvent.Contains(unix.IN_ATTRIB):
+		return "attrib"
+	case inotifyEvent.Contains(unix.IN_CLOSE_WRITE):
+		return "close_write"
+	case inotifyEvent.Contains(unix.IN_CLOSE_NOWRITE):
+		return "close_nowrite"
+	case inotifyEvent.Contains(unix.IN_CREATE):
+		return CreateEvent{
 			Path: filepath.Join(dir, inotifyEvent.name),
-		},
+		}
+	case inotifyEvent.Contains(unix.IN_DELETE):
+		return DeleteEvent{
+			Path: filepath.Join(dir, inotifyEvent.name),
+		}
+	case inotifyEvent.Contains(unix.IN_DELETE_SELF):
+		return DeleteEvent{
+			Path: inotifyEvent.name,
+			IsWatched: true,
+		}
+	case inotifyEvent.Contains(unix.IN_MODIFY):
+		return "modify"
+	case inotifyEvent.Contains(unix.IN_MOVE_SELF):
+		return "move_self"
+	case inotifyEvent.Contains(unix.IN_MOVED_FROM):
+		return "moved_from"
+	case inotifyEvent.Contains(unix.IN_MOVED_TO):
+		return "moved_to"
+	case inotifyEvent.Contains(unix.IN_OPEN):
+		return "open"
+	default:
+		return "no handle"
 	}
 }
 
@@ -88,10 +126,12 @@ func (w *Watch) serveEvents(stop <-chan struct{}) {
 			return
 		}
 		select {
-		case w.events <- w.convertInotifyEvent(event):
-			w.logger.Debug("Serve some event") // TODO: extended log
+		case w.events <- w.convertToEvent(event):
+			w.logger.Debug("Serve event", "value", event) // TODO: extended log
 		case <-stop:
 			w.logger.Debug("serveEvents got stop signal")
+			close(w.events)
+			return
 		}
 	}
 }
