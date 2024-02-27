@@ -3,6 +3,7 @@ package inotify
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -60,14 +61,18 @@ func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	w, _ := NewWatch(events, slog.Default())
 	defer w.Close()
 	w.Subscribe(s.root)
-	path := s.root+"/test"
+	path := filepath.Join(s.root, "test")
 	file, _ := os.Create(path)
 	defer os.Remove(file.Name())
 	file.Close()
 
 	event := <-events
 
-	require.Equal(s.T(), Event{}, event)
+	require.Equal(s.T(), CreateEvent{
+		eventBase: eventBase{
+			Path: file.Name(),
+		},
+	}, event)
 }
 
 func TestExampleTestSuite(t *testing.T) {

@@ -3,6 +3,7 @@ package inotify
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -64,18 +65,30 @@ func (w *Watch) readEvent() (*inotifyEvent, error)  {
 	return &event, nil
 }
 
+func (w *Watch) convertInotifyEvent(inotifyEvent *inotifyEvent) Event {
+	dir, ok := w.nameByWatchDescriptor[int(inotifyEvent.Wd)]
+	if !ok {
+		panic("failed to determine dir of event: watch decriptor not found")
+	}
+	return CreateEvent{
+		eventBase{
+			Path: filepath.Join(dir, inotifyEvent.name),
+		},
+	}
+}
+
 func (w *Watch) serveEvents(stop <-chan struct{}) {
 	defer w.logger.Info("Stop serving events", "inotify", w.inotify.Name())
 	w.logger.Info("Start serving events", "inotify", w.inotify.Name())
 	for {
-		_, err := w.readEvent()
+		event, err := w.readEvent()
 		if err != nil {
 			w.logger.Warn(fmt.Sprintf("Got error while reading events: %v", err.Error()))
 			close(w.events)
 			return
 		}
 		select {
-		case w.events <- Event{}:
+		case w.events <- w.convertInotifyEvent(event):
 			w.logger.Debug("Serve some event") // TODO: extended log
 		case <-stop:
 			w.logger.Debug("serveEvents got stop signal")
