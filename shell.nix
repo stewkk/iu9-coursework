@@ -9,7 +9,8 @@ pkgs.mkShell {
     pkgs.nodePackages.pyright
     pkgs.gopls
     pkgs.plantuml
-
+    pkgs.texliveFull
+    pkgs.python310Packages.pygments
 
     # keep this line if you use bash
     pkgs.bashInteractive
