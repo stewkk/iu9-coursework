@@ -78,6 +78,12 @@ func (w *Watch) convertToEvent(inotifyEvent *inotifyEvent) Event {
 	if !ok {
 		panic("failed to determine dir of event: watch decriptor not found")
 	}
+	if inotifyEvent.Contains(unix.IN_IGNORED) {
+		w.logger.Debug("This event contains ignored")
+	}
+	if inotifyEvent.Contains(unix.IN_ISDIR) {
+		w.logger.Debug("Thos event contains isdir")
+	}
 	switch {
 	case inotifyEvent.Contains(unix.IN_ACCESS):
 		return "acess"
@@ -98,7 +104,6 @@ func (w *Watch) convertToEvent(inotifyEvent *inotifyEvent) Event {
 	case inotifyEvent.Contains(unix.IN_DELETE_SELF):
 		return DeleteEvent{
 			Path: inotifyEvent.name,
-			IsWatched: true,
 		}
 	case inotifyEvent.Contains(unix.IN_MODIFY):
 		return "modify"

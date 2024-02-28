@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -86,6 +87,7 @@ func (s *InotifyTestSuite) TestServeFileDeleteEvent() {
 
 	require.Equal(s.T(), DeleteEvent{
 		Path: file.Name(),
+		Eof:  false,
 	}, event)
 }
 
@@ -99,14 +101,44 @@ func (s *InotifyTestSuite) TestServeDeleteSelfEvent() {
 
 	os.Remove(dir)
 	event := <-events
-	event2 := <-events
-	w.logger.Debug("got event", "value", event2)
-	event3 := <-events
-	w.logger.Debug("got event", "value", event3)
+	for loop := true; loop; {
+		select {
+		case <-events:
+			w.logger.Debug("OAOA")
+		case <-time.After(1*time.Second):
+			w.logger.Warn("TIMEOUT")
+			loop = false
+		}
+	}
 
 	require.Equal(s.T(), DeleteEvent{
 		Path:      dir,
-		IsWatched: true,
+		Eof:       false,
+	}, event)
+}
+
+func (s *InotifyTestSuite) TestDetectsEof() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	dir, _ := os.MkdirTemp(s.root, "test")
+	w.Subscribe(dir)
+
+	os.Remove(dir)
+	event := <-events
+	for loop := true; loop; {
+		select {
+		case <-events:
+			w.logger.Debug("OAOA")
+		case <-time.After(1*time.Second):
+			w.logger.Warn("TIMEOUT")
+			loop = false
+		}
+	}
+
+	require.Equal(s.T(), DeleteEvent{
+		Path:      dir,
+		Eof:       false,
 	}, event)
 }
 

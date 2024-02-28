@@ -8,5 +8,5 @@ type CreateEvent struct {
 
 type DeleteEvent struct {
 	Path string
-	IsWatched bool
+	Eof  bool
 }
