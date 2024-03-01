@@ -86,29 +86,44 @@ func (w *Watch) convertToEvent(inotifyEvent *inotifyEvent) Event {
 	}
 	switch {
 	case inotifyEvent.Contains(unix.IN_ACCESS):
-		return "acess"
+		return nil
 	case inotifyEvent.Contains(unix.IN_ATTRIB):
-		return "attrib"
+		return nil
 	case inotifyEvent.Contains(unix.IN_CLOSE_WRITE):
-		return "close_write"
+		return CloseEvent{
+			Path:       inotifyEvent.name,
+			IsReadOnly: false,
+		}
 	case inotifyEvent.Contains(unix.IN_CLOSE_NOWRITE):
-		return "close_nowrite"
+		return CloseEvent{
+			Path:       inotifyEvent.name,
+			IsReadOnly: true,
+		}
 	case inotifyEvent.Contains(unix.IN_CREATE):
 		return CreateEvent{
 			Path: filepath.Join(dir, inotifyEvent.name),
+			IsDir:   inotifyEvent.Contains(unix.IN_ISDIR),
 		}
 	case inotifyEvent.Contains(unix.IN_DELETE):
 		return DeleteEvent{
 			Path: filepath.Join(dir, inotifyEvent.name),
+			IsDir:   inotifyEvent.Contains(unix.IN_ISDIR),
 		}
 	case inotifyEvent.Contains(unix.IN_DELETE_SELF):
 		return DeleteEvent{
 			Path: inotifyEvent.name,
+			IsDir:   inotifyEvent.Contains(unix.IN_ISDIR),
 		}
 	case inotifyEvent.Contains(unix.IN_MODIFY):
-		return "modify"
+		return ModifyEvent{
+			Path: inotifyEvent.name,
+		}
 	case inotifyEvent.Contains(unix.IN_MOVE_SELF):
-		return "move_self"
+		return RenameEvent{
+			Path:    inotifyEvent.name,
+			MovedTo: "",
+			IsDir:   inotifyEvent.Contains(unix.IN_ISDIR),
+		}
 	case inotifyEvent.Contains(unix.IN_MOVED_FROM):
 		return "moved_from"
 	case inotifyEvent.Contains(unix.IN_MOVED_TO):
