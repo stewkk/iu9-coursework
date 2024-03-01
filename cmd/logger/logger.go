@@ -22,7 +22,7 @@ func main() {
 		case inotify.CreateEvent:
 			fmt.Println(e.Path)
 		}
-	case <-time.After(1*time.Second):
+	case <-time.After(2*time.Second):
 		os.Exit(1)
 	}
 }

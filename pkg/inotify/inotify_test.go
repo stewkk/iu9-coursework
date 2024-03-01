@@ -70,7 +70,8 @@ func (s *InotifyTestSuite) TestServeFileCreateEvent() {
 	event := <-events
 
 	require.Equal(s.T(), CreateEvent{
-		Path: file.Name(),
+		Path:  file.Name(),
+		IsDir: false,
 	}, event)
 }
 
@@ -86,8 +87,8 @@ func (s *InotifyTestSuite) TestServeFileDeleteEvent() {
 	event := <-events
 
 	require.Equal(s.T(), DeleteEvent{
-		Path: file.Name(),
-		Eof:  false,
+		Path:  file.Name(),
+		IsDir: false,
 	}, event)
 }
 
@@ -112,8 +113,8 @@ func (s *InotifyTestSuite) TestServeDeleteSelfEvent() {
 	}
 
 	require.Equal(s.T(), DeleteEvent{
-		Path:      dir,
-		Eof:       false,
+		Path:  dir,
+		IsDir: false,
 	}, event)
 }
 
@@ -137,8 +138,8 @@ func (s *InotifyTestSuite) TestDetectsEof() {
 	}
 
 	require.Equal(s.T(), DeleteEvent{
-		Path:      dir,
-		Eof:       false,
+		Path:  dir,
+		IsDir: false,
 	}, event)
 }
 

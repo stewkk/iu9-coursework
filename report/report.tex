@@ -781,7 +781,6 @@ Inotify можно использовать для мониторинга отд
         (Системный вызов \code{inotify\_rm\_watch()} выполняет обратную задачу,
         удаляя экземпляр наблюдения, который ранее был добавлен в экземпляр
         inotify.)
-% TODO: рисунок 01 --- Объект inotify и связанные структуры данных ядра
   \item Чтобы получать уведомления о событиях, приложение делает вызовы
         \code{read()} с файловым дескриптором inotify. Каждый успешный
         \code{read()} возвращает одну или несколько структур inotify\_event,
@@ -878,7 +877,7 @@ Inotify можно использовать для мониторинга отд
 которого представлена на рисунке \ref{fig:inotify_buffer}, содержащий одну или
 несколько структур из листинга \ref{lst:inotify_event}.
 
-\begin{listing}
+\begin{listing}[H]
 \caption{Структура \code{inotify\_event}}
 \label{lst:inotify_event}
 \begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
@@ -1113,11 +1112,58 @@ cookie, что позволит приложению связать их.
 пары событий \code{IN\_MOVED\_FROM+IN\_MOVED\_TO} не является атомарной, а также
 возможность того, что может не быть никакого события \code{IN\_MOVED\_TO}.
 
+В таблице~\ref{table:mask-out} приведем возможные значения маски для
+сгенерированных событий.
+
+\begin{table}[htb]
+  \caption{\centering События inotify.}
+  \small
+  \centering\begin{tabular}{|l|l|}
+              \hline\hline
+              \multirow{ 2}{*}{Битовое значение} & \multirow{ 2}{*}{Описание}\\
+                                                 & \\
+              \hline
+              \code{IN\_ACCESS} & Файл прочитан\\
+              \hline
+              \code{IN\_ATTRIB} & Метаданные изменены\\
+              \hline
+              \code{IN\_CLOSE\_WRITE} & Открытый для записи файл был закрыт \\
+              \hline
+              \code{IN\_CLOSE\_NOWRITE} & Открытый для чтения файл был закрыт \\
+              \hline
+              \code{IN\_CREATE} & Файл или каталог создан внутри наблюдаемого объекта \\
+              \hline
+              \code{IN\_DELETE} & Файл или каталог удален из наблюдаемого объекта \\
+              \hline
+              \code{IN\_DELETE\_SELF} & Наблюдаемый каталог или файл был удален \\
+              \hline
+              \code{IN\_MODIFY} & Файл был изменен \\
+              \hline
+              \code{IN\_MOVE\_SELF} & Наблюдаемый каталог или файл был перемещен \\
+              \hline
+              \code{IN\_MOVED\_FROM} & Файл или каталог перемещен из наблюдаемого каталога \\
+              \hline
+              \code{IN\_MOVED\_TO} & Файл или каталог перемещен в наблюдаемый каталог \\
+              \hline
+              \code{IN\_OPEN} & Файл был открыт \\
+              \hline
+              \code{IN\_IGNORED} & Файл более не отслеживается\\
+              \hline
+              \code{IN\_ISDIR} & Событие относится к каталогу\\
+              \hline
+              \code{IN\_Q\_OVERFLOW} & Переполнение очереди событий\\
+              \hline
+              \code{IN\_UNMOUNT} & Файловая система была размонтирована\\
+              \hline\hline
+            \end{tabular}
+            \label{table:mask-in}
+\end{table}
+
 Предположим, приложение отслеживает каталог dir и файл dir/myfile для всех
 событий. В листинге \ref{lst:inotify_examples} ниже показаны некоторые события, которые будут сгенерированы
 для этих двух объектов.
 
-\begin{listing}
+\begin{listing}[H]
 \caption{Примеры событий inotify}
 \label{lst:inotify_examples}
 \begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
@@ -1147,7 +1193,7 @@ close(fd);
 и файл dir1/myfile. В листинге \ref{lst:inotify_examples2} показаны некоторые
 события, которые могут быть сгенерированы.
 
-\begin{listing}
+\begin{listing}[H]
 \caption{Примеры событий inotify}
 \label{lst:inotify_examples2}
 \begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
@@ -1168,7 +1214,7 @@ rename("dir1/myfile", "dir2/myfile");
 следующие вызовы в порядке, указанном в листинге \ref{lst:inotify_examples3}
 сгенерируются следующие события:
 
-\begin{listing}
+\begin{listing}[H]
 \caption{Примеры событий inotify}
 \label{lst:inotify_examples3}
 \begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
@@ -1186,7 +1232,7 @@ unlink("dir1/xx");
 В следующих примерах в листинге \ref{lst:inotify_examples4} показаны некоторые события, которые могут быть
 сгенерированы.
 
-\begin{listing}
+\begin{listing}[H]
 \caption{Примеры событий inotify}
 \label{lst:inotify_examples4}
 \begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
@@ -1217,7 +1263,17 @@ rmdir("dir/subdir");
         десприпторам наблюдения.
 \end{itemize}
 
-TODO, возможно схемы сделать? тут еще 1.5 страницы надо
+Функции Subscribe и SubscribeRecursive покрывают почти все сценарии использования
+inotify. При применении SubscribeRecursive созданные подкаталоги автоматически
+попадают в список отслеживаемых.
+
+Из непокрытых сценариев использования, могут быть сценарии, когда необходимо
+исключить некоторые подкаталоги с помощью фильтров по регулярным выражениям.
+Кроме того, отписка от уведомлений не имеет рекурсивной версии.
+
+Данный набор методов удовлетворяет требованиям к сущности <<Наблюдатель>>,
+инкапсулируют логику чтения событий с помощью механизма inotify и предоставляет
+удобный интерфейс для пользователей.
 
 \section{Реализация библиотеки}
 
@@ -1255,15 +1311,222 @@ TODO, возможно схемы сделать? тут еще 1.5 страни
 
 \subsection{Особенности реализации модуля <<Наблюдатель>>}
 
+Структура <<Наблюдатель>> хранит состояние чтения событий из интерфейса inotify,
+а так же кэширует соответствие дескрипторов наблюдения и путей файловой системы.
+Объявление структуры приведено в листинге \ref{lst:watcher}.
+
+\begin{listing}[H]
+\caption{Структура Watch}
+\label{lst:watcher}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em]{c}
+type Watch struct {
+	events chan<- Event
+	logger *slog.Logger
+
+	inotify *os.File
+	buf *inotifyBuffer
+	nameByWatchDescriptor map[int] string
+
+	stopServing chan<- struct{}
+}
+\end{minted}
+\end{listing}
+
+Как видно на листинге \ref{lst:watcher}, библиотека использует канал \code{events} для передачи
+событий пользовательскому коду. Поля \code{inotify}, \code{buf} и
+\code{nameByWatchDescriptor} отвечают за взаимодействие с API intofify. Канал
+\code{stopServing} используется для остановки чтения и отправки эвентов
+пользовательскому коду.
+
+На листинге \ref{lst:newwatch} отображен код конструктора структуры <<Наблюдатель>>.
+
+\begin{listing}[H]
+\caption{Конструктор NewWatch}
+\label{lst:newwatch}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func NewWatch(events chan<- Event, logger *slog.Logger) (Watch, error) {
+	fd, err := unix.InotifyInit()
+
+// ...
+
+	stopServing := make(chan struct{})
+
+//...
+
+	logger.Info("Initialized new inotify instance", "inotify", w.inotify.Name())
+
+	go w.serveEvents(stopServing)
+
+	return w, nil
+}
+\end{minted}
+\end{listing}
+
+Как видно из листинга, конструктор инициализирует дескриптор inotify и запускает
+горутину, которая вычитывает события из буфера inotify и отправляет в
+пользовательский код через канал \code{events}.
+
+Необходимо заметить, что канал в данном случае является частью публичного
+интерфейса библиотеки, поэтому соответствует трем правилам проектирования таких интерфейсов~\cite{goapichannels}:
+
+\begin{enumerate}
+  \item Указывать направление канала.
+  \item Получать канал как параметр. Тогда пользовательский код может без
+        проблем настраивать наличие и размер буфера.
+  \item Закрывать такой канал может только горутина, записывающая значения.
+\end{enumerate}
+
+Рассмотрим функцию подписки на путь в листинге~\ref{lst:subscribe}. Функция
+принимет на вход путь. Затем создает новый дескриптор наблюдения и кэширует
+соответствие этого дескриптора с переданным путем.
+
+\begin{listing}[H]
+\caption{Функция подписки на события}
+\label{lst:subscribe}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (w *Watch) Subscribe(path string) error {
+	wd, err := unix.InotifyAddWatch(int(w.inotify.Fd()), path, unix.IN_ALL_EVENTS)
+	if err != nil {
+		return err
+	}
+	w.nameByWatchDescriptor[wd] = path
+	w.logger.Info("Subscribed to new path", "wd", wd, "path", path)
+	return nil
+}
+\end{minted}
+\end{listing}
+
+Объявления типов событий приведено в листинге~\ref{lst:event}. Здесь
+\code{Event} имеет тип \code{any}, что подразумевает определение типа события с
+помощью type switch в пользовательском коде, пример в листинге~\ref{lst:typeswitch}.
+
+\begin{listing}[H]
+\caption{Объявления типов событий}
+\label{lst:event}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+type Event any
+
+type CreateEvent struct {
+	Path string
+	IsDir bool
+}
+
+type DeleteEvent struct {
+	Path string
+	IsDir bool
+}
+
+type RenameEvent struct {
+	Path string
+	IsDir bool
+	MovedTo string
+}
+
+// ...
+
+\end{minted}
+\end{listing}
+
+\begin{listing}[H]
+\caption{Пример определение типа события}
+\label{lst:typeswitch}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+	select {
+	case e := <-events:
+		switch e := e.(type) {
+		case inotify.CreateEvent:
+			fmt.Println("create ", e.Path)
+    // ...
+		}
+	case <-time.After(1*time.Second):
+		os.Exit(1)
+	}
+\end{minted}
+\end{listing}
+
+В листинге~\ref{lst:serve} приведен код горутины, которая читает обновления
+inotify и отправляет пользовательскому коду.
+
+\begin{listing}[H]
+\caption{Горутина, читающая события и направляющая пользовательскому коду}
+\label{lst:serve}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (w *Watch) serveEvents(stop <-chan struct{}) {
+	defer w.logger.Info("Stop serving events", "inotify", w.inotify.Name())
+	w.logger.Info("Start serving events", "inotify", w.inotify.Name())
+	for {
+		event, err := w.readEvent()
+		if err != nil {
+			w.logger.Warn(fmt.Sprintf("Got error while reading events: %v", err.Error()))
+			close(w.events)
+			return
+		}
+		select {
+		case w.events <- w.convertToEvent(event):
+			w.logger.Debug("Serve event", "value", event)
+		case <-stop:
+			w.logger.Debug("serveEvents got stop signal")
+			close(w.events)
+			return
+		}
+	}
+}
+\end{minted}
+\end{listing}
+
+Интересно рассмотреть функцию прекращения мониторинга в
+листинге~\ref{lst:close}. Т.к. чтение событий и запись в канал происходит в
+отдельной горутине, если не предпринять специальных мер, при уничтожении объекта
+\code{Watch}, эта горутина останется в заснувшем состоянии, потребляя ресурсы
+системы. Для нормального завершения работы нужно всегда вызывать функцию
+\code{Close()} после окончания обработки событий. Эта функция остановит горутину одним из двух способов:
+
+\begin{itemize}
+  \item Если горутина заблокировалась на чтении из файлового дескриптора
+        inotify, то \code{Close()} закроет этот файловый дескриптор, и горутина
+        разблокируется.
+  \item Если горутина заблокировалась на записи в канал, то \code{Close()}
+        закроет канал \code{stopServing}, и горутина также разблокируется.
+\end{itemize}
+
+Таким образом все ресурсы корректно освобождаются в конце чтения событий.
+
+\begin{listing}[H]
+\caption{Функция остановки получения событий.}
+\label{lst:close}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (w *Watch) Close() {
+	close(w.stopServing)
+	w.inotify.Close()
+}
+\end{minted}
+\end{listing}
+
 \subsection{Описание работы библиотеки}
 
-% тут руководство пользователя и администратора, примеры результатов работы, мб демо приложение
+В листинге~\ref{lst:logger_code} приведен пример использования библиотеки. Последовательность действий:
 
-Запуск приложения производиться согласно рисунку \ref{fig:run_app}. После
-успешной сборки в консоли появится адрес, а также откроется окно браузера с
-визуализацией графа. Примеры визуализации графа из 60 пользователей с помощью
-алгоритмов Фрюхтермана-Рейнгольда и Камады-Кавай представлены на рисунках
-\ref{fig:fr_result} и \ref{fig:kk_result} соответственно.
+\begin{enumerate}
+  \item Создать канал для событий.
+  \item Вызвать конструктор NewWatch и передать канал туда.
+  \item Сделать отложенный вызов Close.
+  \item Подписаться на нужные каталоги.
+  \item Читать события из канала.
+\end{enumerate}
+
+Запуск приложения производиться согласно рисунку \ref{fig:run_app}. Зависимости
+устанавливаются утилитой \code{go} автоматически. После успешной сборки в
+консоли будут логироваться события.
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}[t]{.8\textwidth}
+		\centering
+		\includegraphics[width=.8\textwidth]{./imgs/run_app.png}
+	\end{minipage}
+	\caption{Пример запуска приложения.}
+	\label{fig:run_app}
+\end{figure}
 
 \section{Тестирование}
 
@@ -1271,20 +1534,122 @@ TODO, возможно схемы сделать? тут еще 1.5 страни
 операции над файлами внутри наблюдаемых каталогов и сравним полученные события с
 ожидаемыми.
 
-% тут тесты для разных видов событий
+Для каждого теста ниже, в начале производится одинаковая настройка окружения.
+Приведено в лисинге~\ref{lst:test_setup}.
 
-Результат работы программы на небольшом полном графе представлен на рисунке
-\ref{fig:full_graph_res}, пункты а и б. Результат визуализации с помощью
-graphviz представлен на том же рисунке, пункт в. Как можно увидеть, укладки
-графов идентичны, с точность до поворота.
+\begin{listing}[H]
+\caption{Настройка тестового окружения}
+\label{lst:test_setup}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (s *InotifyTestSuite) SetupTest() {
+	root, err := os.MkdirTemp("", "inotify-go")
+	if err != nil {
+		panic(err)
+	}
+	s.root = root
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(h))
+}
+
+func (s *InotifyTestSuite) TearDownTest() {
+	err := os.Remove(s.root)
+	if err != nil {
+		panic(err)
+	}
+}
+\end{minted}
+\end{listing}
+
+В листинге~\ref{lst:test_create} приведен юнит-тест, где проверяется отправка
+события создания файла в наблюдаемом каталоге.
+
+\begin{listing}[H]
+\caption{Тест на создание файла}
+\label{lst:test_create}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (s *InotifyTestSuite) TestServeFileCreateEvent() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	w.Subscribe(s.root)
+	path := filepath.Join(s.root, "test")
+	file, _ := os.Create(path)
+	defer os.Remove(file.Name())
+	file.Close()
+
+	event := <-events
+
+	require.Equal(s.T(), CreateEvent{
+		Path:  file.Name(),
+		IsDir: false,
+	}, event)
+}
+\end{minted}
+\end{listing}
+
+В листинге~\ref{lst:test_delete} приведен юнит-тест, где проверяется отправка
+события удаления файла в наблюдаемом каталоге.
+
+\begin{listing}[H]
+\caption{Тест на удаление файла}
+\label{lst:test_delete}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (s *InotifyTestSuite) TestServeFileDeleteEvent() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	file, _ := os.CreateTemp(s.root, "test")
+	file.Close()
+	w.Subscribe(s.root)
+
+	os.Remove(file.Name())
+	event := <-events
+
+	require.Equal(s.T(), DeleteEvent{
+		Path:  file.Name(),
+		IsDir: false,
+	}, event)
+}
+\end{minted}
+\end{listing}
+
+В листинге~\ref{lst:test_delete} приведен юнит-тест, где проверяется отправка
+события удаления наблюдаемого каталога.
+
+\begin{listing}[H]
+\caption{Тест на удаление каталога}
+\label{lst:test_delete_self}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+func (s *InotifyTestSuite) TestServeDeleteSelfEvent() {
+	events := make(chan Event)
+	w, _ := NewWatch(events, slog.Default())
+	defer w.Close()
+	dir, _ := os.MkdirTemp(s.root, "test")
+	w.Subscribe(s.root)
+	w.Subscribe(dir)
+
+	os.Remove(dir)
+	event := <-events
+
+	require.Equal(s.T(), DeleteEvent{
+		Path:  dir,
+		IsDir: true,
+	}, event)
+}
+\end{minted}
+\end{listing}
+
+Аналогичные тесты сделаны и для других типов событий. На последней версии
+библиотеки все тесты завершаются успехом.
 
 \subsection{Результаты тестирования}
 
 В результате тестирования библиотеки на различных видах операций над файлами и
 сравнения полученных событий с ожидаемыми, можно утверждать о правильности
 работы библиотеки. Программа показала согласованность и точность в уведомлении о
-событиях файловой системы для разнообразных входных данных, включая ... (TODO!).
-На каждом этапе тестирования результирующий список событий совпадал с ожидаемым.
+событиях файловой системы для разнообразных входных данных, включая создание,
+переименование, удаление и т.д. На каждом этапе тестирования результирующий
+список событий совпадал с ожидаемым.
 
 Таким образом, результаты тестирования позволяют сделать вывод о правильности
 работы разработанной библиотеки и её способности генерировать уведомления об
@@ -1324,6 +1689,40 @@ graphviz представлен на том же рисунке, пункт в. 
 \anonsection{ПРИЛОЖЕНИЕ А}
 \vspace{-30pt}
 
+\begin{listing}[H]
+\caption{Пример использования библиотеки.}
+\label{lst:logger_code}
+\begin{minted}[frame=single,fontsize = \footnotesize, linenos, xleftmargin = 1.5em, breaklines]{c}
+package main
 
+import (
+	"fmt"
+	"log/slog"
+	"os"
+	"time"
+
+	"github.com/stewkk/iu9-coursework/pkg/inotify"
+)
+
+func main() {
+	events := make(chan inotify.Event, 10)
+	w, err := inotify.NewWatch(events, slog.Default())
+	if err != nil {
+		panic(err)
+	}
+	defer w.Close()
+	select {
+	case e := <-events:
+		switch e := e.(type) {
+		case inotify.CreateEvent:
+			fmt.Println("create ", e.Path)
+	    // ...
+		}
+	case <-time.After(1*time.Second):
+		os.Exit(1)
+	}
+}
+\end{minted}
+\end{listing}
 
 \end{document}
