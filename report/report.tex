@@ -468,7 +468,11 @@
 \makeatletter
 \renewcommand*{\p@subsubsection}{}
 \makeatother
-    
+
+\makeatletter
+\AddToHook{begindocument/before}{\@ifpackageloaded{minted}{\removefromtoclist[float]{lol}}{}}
+\makeatother
+
 \begin{document}
 \sloppy
 
