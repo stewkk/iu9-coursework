@@ -1,8 +1,14 @@
-add_executable(main main.cpp)
-target_compile_features(main PRIVATE cxx_std_20)
-set_target_properties(main PROPERTIES
+include(FetchGBenchmark)
+
+add_executable(benchmarks main.cpp)
+target_compile_features(benchmarks PRIVATE cxx_std_20)
+set_target_properties(benchmarks PROPERTIES
   CXX_STANDART 20
   CXX_STANDART_REQUIRED YES
   CXX_EXTENSIONS YES
 )
-target_compile_options(main PRIVATE ${BASE_COMPILE_FLAGS})
+target_compile_options(benchmarks PRIVATE ${BASE_COMPILE_FLAGS})
+target_include_directories(
+  benchmarks PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/benchmarks>
+)
+target_link_libraries(benchmarks PRIVATE benchmark::benchmark)
