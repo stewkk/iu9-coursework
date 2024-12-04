@@ -15,5 +15,13 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_subdirectory(benchmarks)
+add_subdirectory(src/stewkk/ipc)
 
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  add_subdirectory(benchmarks)
+
+  include(CTest)
+  if(BUILD_TESTING)
+    add_subdirectory(test)
+  endif()
+endif()
