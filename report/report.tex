@@ -86,6 +86,10 @@
 \usepackage{graphicx}                               % Подключаем пакет работы с графикой
 \usepackage{wrapfig}
 
+\usepackage{tikz}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{trees}
+
 %%% Списки %%%
 \usepackage{enumitem}
 
@@ -624,20 +628,95 @@ Linux занимает доминирующее положение среди о
 \section{Обзор предметной области}
 
 Межпроцессное взаимодействие --- это обмен данными между потоками разных
-процессов операционной системы, реалзизованный с помощью механизмов,
+процессов операционной системы, реалзизованный с помощью механизмов
 предоставляемых операционной системой.
 
-В Linux
+Механизмы обмена данными между процессами в Linux разделяют на 3 большие
+категории по функциональному предназначению.\cite{kerrisk2010linux}
 
-TODO:классификация (из книжки).
+\begin{itemize}
+  \item Коммуникационные (\ref{fig:communication_ipc_taxonomy}): фокусируются на
+        обмене данными между процессами;
+  \item Синхронизационные: для синхронизации действий между различными
+        процессами;
+  \item Сигналы: могут использоваться как для обмена данными, так и для
+        синхронизации.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+    \begin{tikzpicture}[grow'=right,
+      every node/.style={shape=rectangle,draw,align=center}]
+      \node {Коммуника-\\ционные\\механизмы}
+      [level distance=40mm, sibling distance=93mm, edge from parent fork right]
+        child {
+          node {Передача\\данных}
+          [level distance=45mm, sibling distance=30mm, edge from parent fork right]
+            child {
+              node {Поток байтов}
+              [shape=rounded rectangle, level distance=40mm, sibling distance=10mm, edge from parent fork right]
+                child {
+                  node [shape=rounded rectangle] {Каналы}
+                }
+                child {
+                  node [shape=rounded rectangle] {FIFO}
+                }
+                child {
+                  node [shape=rounded rectangle, yshift=-3mm] {Потоковые\\сокеты}
+                }
+            }
+            child {
+              node [shape=rounded rectangle] {Псевдо-\\терминал}
+            }
+            child {
+              node {Сообщения}
+              [level distance=40mm, sibling distance=25mm, edge from parent fork right]
+                child {
+                  node [shape=rounded rectangle] {Очереди\\сообщений\\System V}
+                }
+                child {
+                  node [shape=rounded rectangle] {Очереди\\сообщений\\POSIX}
+                }
+                child {
+                  % TODO: поменять название
+                  node [shape=rounded rectangle] {datagram\\сокеты}
+                }
+            }
+        }
+        child {
+          node {Разделяемая\\память} [level distance=45mm, sibling distance=25mm, edge from parent fork right]
+          child {
+            node [shape=rounded rectangle, xshift=15mm] {Разделяемая память System V}
+          }
+          child {
+            node [shape=rounded rectangle, xshift=13mm] {Разделяемая память POSIX}
+          }
+          child {
+            node {Отображаемая\\память}
+            [level distance=45mm, sibling distance=25mm, edge from parent fork right]
+              child {
+                node [shape=rounded rectangle] {Анонимное\\отображение}
+              }
+              child {
+                node [shape=rounded rectangle] {Отображение\\файла}
+              }
+          }
+        };
+    \end{tikzpicture}
+  \end{minipage}
+  \caption{Классификация коммуникационных механизмов межпроцессного взаимодействия в Linux.}
+  \label{fig:communication_ipc_taxonomy}
+\end{figure}
 
 \subsection{Каналы}
 
 В UNIX-подобных операционных системах каналы являются первым реализованным
-методом межпроцессного взаимодействия. Впервые они появлись в 1970-х годах.
-Каналы естественным образом реализуют философию UNIX, позволяя использовать
-вывод одной команды, как ввод для другой команды, что используется командной
-оболочкой для составления конвееров обработки данных.
+методом межпроцессного взаимодействия. Впервые они появлись в 1970-х
+годах.\cite{kerrisk2010linux} Каналы естественным образом реализуют философию
+UNIX, позволяя использовать вывод одной команды, как ввод для другой команды,
+что используется командной оболочкой для составления конвееров обработки данных.
 
 TODO
 
