@@ -1,4 +1,4 @@
-add_library(libipc pipe.cpp)
+add_library(libipc pipe.cpp subprocess.cpp errors.cpp)
 add_library(stewkk::libipc ALIAS libipc)
 target_compile_features(libipc PUBLIC cxx_std_20)
 set_target_properties(libipc PROPERTIES

@@ -8,7 +8,4 @@ set_target_properties(benchmarks PROPERTIES
   CXX_EXTENSIONS YES
 )
 target_compile_options(benchmarks PRIVATE ${BASE_COMPILE_FLAGS})
-target_include_directories(
-  benchmarks PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/benchmarks>
-)
 target_link_libraries(benchmarks PRIVATE benchmark::benchmark)

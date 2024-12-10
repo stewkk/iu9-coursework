@@ -1,7 +1,11 @@
 include(FetchGTest)
 include(GoogleTest)
 
-add_executable(unittests ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/pipe_test.cpp)
+add_executable(unittests)
+target_sources(unittests PRIVATE
+  ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/pipe_test.cpp
+  ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/subprocess_test.cpp
+)
 target_compile_options(unittests PRIVATE ${BASE_COMPILE_FLAGS})
 target_include_directories(
   unittests PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
