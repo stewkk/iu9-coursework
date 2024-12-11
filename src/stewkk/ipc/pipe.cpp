@@ -2,24 +2,32 @@
 
 #include <array>
 #include <cstdint>
+#include <tuple>
 #include <utility>
 
 #include <unistd.h>
 
+#include <stewkk/ipc/errors.hpp>
+
 namespace stewkk::ipc {
 
-using PipeReadFD = std::int32_t;
-using PipeWriteFD = std::int32_t;
+namespace {
 
-std::pair<PipeReadFD, PipeWriteFD> MakePipe() {
-    std::array<std::int32_t, 2> pipe_file_descriptors;
-    if (pipe(pipe_file_descriptors.data()) == -1) {
-        throw std::exception();
-    }
-    return {
-        pipe_file_descriptors[0],
-        pipe_file_descriptors[1],
-    };
+std::pair<Pipe::ReadFD, Pipe::WriteFD> MakePipe() {
+  std::array<std::int32_t, 2> pipe_file_descriptors;
+  if (pipe(pipe_file_descriptors.data()) == -1) {
+    throw GetSyscallError();
+  }
+  return {
+      pipe_file_descriptors[0],
+      pipe_file_descriptors[1],
+  };
 }
 
-}  // namespace stewkk::ipc
+} // namespace
+
+Pipe::Pipe() {
+    std::tie(read_fd_, write_fd_) = MakePipe();
+}
+
+} // namespace stewkk::ipc

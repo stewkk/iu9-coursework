@@ -8,6 +8,6 @@ class SyscallError : public std::system_error {
     using std::system_error::system_error;
 };
 
-void ThrowSyscallError();
+SyscallError GetSyscallError();
 
 }  // namespace stewkk::ipc
