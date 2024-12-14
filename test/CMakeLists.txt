@@ -6,6 +6,7 @@ target_sources(unittests PRIVATE
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/pipe_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/subprocess_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/fdstreambuf_test.cpp
+  ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/errors_test.cpp
 )
 target_compile_options(unittests PRIVATE ${BASE_COMPILE_FLAGS})
 target_include_directories(
