@@ -17,7 +17,7 @@ requires(I i) {
 
 class Subprocess {
 public:
-  Subprocess(std::function<void(FDBufOut)> subprogramm, RWIpc auto ipc);
+  Subprocess(std::function<void(FDBufOut)> subprogram, RWIpc auto ipc);
   ~Subprocess();
   Subprocess(const Subprocess& other) = delete;
   Subprocess& operator=(const Subprocess& other) = delete;
@@ -28,11 +28,11 @@ private:
   pid_t child_pid_;
 };
 
-Subprocess::Subprocess(std::function<void(FDBufOut)> subprogramm, RWIpc auto ipc) : stdout(-1) {
+Subprocess::Subprocess(std::function<void(FDBufOut)> subprogram, RWIpc auto ipc) : stdout(-1) {
   auto pid = Fork();
 
   if (pid == 0) {
-    subprogramm(ipc.GetWriter());
+    subprogram(ipc.GetWriter());
     std::exit(0);
   }
 
