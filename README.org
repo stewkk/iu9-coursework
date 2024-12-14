@@ -90,3 +90,10 @@
 собой единое законченное целое. Материал записки должен излагаться грамотным
 техническим языком. За принятые решения, правильность выполненных расчетов и
 сделанных выводов ответственность несет автор курсового проекта – студент.
+
+
+https://www.josuttis.com/cppcode/fdstream.html
+https://www.josuttis.com/cppcode/fdstream.hpp.html
+https://www.josuttis.com/cppcode/fdstest3.cpp.html
+
+https://github.com/pocoproject/poco/blob/b380b57d5d999444906e42754db13f87902a1794/Foundation/include/Poco/UnbufferedStreamBuf.h#L173
