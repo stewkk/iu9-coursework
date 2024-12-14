@@ -1,12 +1,15 @@
 #include <stewkk/ipc/subprocess.hpp>
 
-#include <functional>
+#include <sys/wait.h>
+
+#include <stewkk/ipc/errors.hpp>
+#include <stewkk/ipc/fdstreambuf.hpp>
+#include <stewkk/ipc/syscalls.hpp>
 
 namespace stewkk::ipc {
 
-Subprocess::Subprocess(std::function<void()> programm) {}
-
-void Subprocess::Wait() {}
-
+Subprocess::~Subprocess() {
+  Waitpid(child_pid_);
+}
 
 }  // namespace stewkk::ipc

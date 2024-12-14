@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <streambuf>
+#include <optional>
 
 namespace stewkk::ipc {
 
@@ -9,13 +10,17 @@ class FDBufOut : public std::streambuf {
 public:
     explicit FDBufOut(std::int32_t fd);
     ~FDBufOut();
+    FDBufOut(const FDBufOut& other) = delete;
+    FDBufOut& operator=(const FDBufOut& other) = delete;
+    FDBufOut(FDBufOut&& other) noexcept;
+    FDBufOut& operator=(FDBufOut&& other) noexcept;
 
 private:
     int_type overflow(int_type c) override;
     std::streamsize xsputn(const char* buf, std::streamsize size) override;
 
 private:
-    std::int32_t fd_;
+    std::optional<std::int32_t> fd_;
 };
 
 // NOTE: reference implementation
@@ -24,6 +29,10 @@ class FDBufIn : public std::streambuf {
 public:
     explicit FDBufIn(std::int32_t fd);
     ~FDBufIn();
+    FDBufIn(const FDBufIn& other) = delete;
+    FDBufIn& operator=(const FDBufIn& other) = delete;
+    FDBufIn(FDBufIn&& other) noexcept;
+    FDBufIn& operator=(FDBufIn&& other) noexcept;
 
 private:
     int_type uflow() override;
@@ -31,7 +40,7 @@ private:
     std::streamsize xsgetn(char* buf, std::streamsize size) override;
 
 private:
-    std::int32_t fd_;
+    std::optional<std::int32_t> fd_;
     char buf_;
     bool use_buf_;
 };

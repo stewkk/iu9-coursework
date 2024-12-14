@@ -2,7 +2,11 @@
 
 #include <unistd.h>
 
+#include <iostream>
+#include <utility>
+
 #include <stewkk/ipc/errors.hpp>
+#include <stewkk/ipc/syscalls.hpp>
 
 namespace stewkk::ipc {
 
@@ -42,7 +46,16 @@ bool WriteFD(std::int32_t fd, std::array<std::int8_t, BufSize> data) {
 FDBufOut::FDBufOut(std::int32_t fd) : fd_(fd) {}
 
 FDBufOut::~FDBufOut() {
-    close(fd_);
+    if (fd_.has_value()) {
+        Close(fd_.value());
+    }
+}
+
+FDBufOut::FDBufOut(FDBufOut&& other) noexcept : fd_(std::exchange(other.fd_, std::nullopt)) {}
+
+FDBufOut& FDBufOut::operator=(FDBufOut&& other) noexcept {
+    fd_ = std::exchange(other.fd_, std::nullopt);
+    return *this;
 }
 
 FDBufOut::int_type FDBufOut::overflow(int_type c) {
@@ -50,7 +63,7 @@ FDBufOut::int_type FDBufOut::overflow(int_type c) {
         return EOF;
     }
 
-    auto ok = WriteFD(fd_, c);
+    auto ok = WriteFD(fd_.value(), c);
     if (!ok) {
         return EOF;
     }
@@ -59,14 +72,27 @@ FDBufOut::int_type FDBufOut::overflow(int_type c) {
 }
 
 std::streamsize FDBufOut::xsputn(const char* buf, std::streamsize size) {
-    auto res = write(fd_, buf, size);
+    auto res = write(fd_.value(), buf, size);
     return res;
 }
 
 FDBufIn::FDBufIn(std::int32_t fd) : fd_(fd), buf_(EOF), use_buf_(false) {}
 
 FDBufIn::~FDBufIn() {
-    close(fd_);
+    if (fd_.has_value()) {
+        Close(fd_.value());
+    }
+}
+
+FDBufIn::FDBufIn(FDBufIn &&other) noexcept
+    : fd_(std::exchange(other.fd_, std::nullopt)), buf_(other.buf_),
+      use_buf_(other.use_buf_) {}
+
+FDBufIn &FDBufIn::operator=(FDBufIn &&other) noexcept {
+    fd_ = std::exchange(other.fd_, std::nullopt);
+    buf_ = other.buf_;
+    use_buf_ = other.use_buf_;
+    return *this;
 }
 
 FDBufIn::int_type FDBufIn::underflow() {
@@ -75,7 +101,7 @@ FDBufIn::int_type FDBufIn::underflow() {
     }
 
     char c;
-    auto ok = read(fd_, &c, sizeof(c));
+    auto ok = read(fd_.value(), &c, sizeof(c));
     if (ok == -1) {
         return EOF;
     }
@@ -94,7 +120,7 @@ FDBufIn::int_type FDBufIn::uflow() {
     }
 
     char c;
-    auto ok = read(fd_, &c, sizeof(c));
+    auto ok = read(fd_.value(), &c, sizeof(c));
     if (ok == -1) {
         return EOF;
     }
@@ -106,7 +132,7 @@ FDBufIn::int_type FDBufIn::uflow() {
 
 std::streamsize FDBufIn::xsgetn(char* buf, std::streamsize size) {
     use_buf_ = false;
-    return read(fd_, buf, size);
+    return read(fd_.value(), buf, size);
 }
 
 }  // namespace stewkk::ipc

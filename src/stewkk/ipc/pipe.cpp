@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <stewkk/ipc/errors.hpp>
+#include <stewkk/ipc/syscalls.hpp>
 
 namespace stewkk::ipc {
 
@@ -28,6 +29,16 @@ std::pair<Pipe::ReadFD, Pipe::WriteFD> MakePipe() {
 
 Pipe::Pipe() {
     std::tie(read_fd_, write_fd_) = MakePipe();
+}
+
+FDBufIn Pipe::GetReader() {
+    Close(write_fd_);
+    return FDBufIn(read_fd_);
+}
+
+FDBufOut Pipe::GetWriter() {
+    Close(read_fd_);
+    return FDBufOut(write_fd_);
 }
 
 } // namespace stewkk::ipc
