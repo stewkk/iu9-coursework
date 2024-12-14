@@ -11,8 +11,4 @@ target_include_directories(
   libipc PUBLIC $<INSTALL_INTERFACE:include>
                     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
-target_include_directories(
-  libipc PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-)
 target_compile_options(libipc PRIVATE ${BASE_COMPILE_FLAGS})
-
