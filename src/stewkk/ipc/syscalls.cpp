@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -30,6 +31,14 @@ void Close(std::int32_t fd) {
     if (res == -1) {
         throw GetSyscallError();
     }
+}
+
+std::int32_t Open(std::filesystem::path path, std::int32_t flags) {
+  auto fd = open(path.c_str(), flags);
+  if (fd == -1) {
+    throw GetSyscallError();
+  }
+  return fd;
 }
 
 }  // namespace stewkk::ipc
