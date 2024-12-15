@@ -71,7 +71,7 @@ FDBufOut::int_type FDBufOut::overflow(int_type c) {
     return c;
 }
 
-std::streamsize FDBufOut::xsputn(const char* buf, std::streamsize size) {
+std::streamsize FDBufOut::sputn(const char* buf, std::streamsize size) {
     auto res = write(fd_.value(), buf, size);
     return res;
 }
@@ -130,7 +130,7 @@ FDBufIn::int_type FDBufIn::uflow() {
     return c;
 }
 
-std::streamsize FDBufIn::xsgetn(char* buf, std::streamsize size) {
+std::streamsize FDBufIn::sgetn(char* buf, std::streamsize size) {
     use_buf_ = false;
     return read(fd_.value(), buf, size);
 }

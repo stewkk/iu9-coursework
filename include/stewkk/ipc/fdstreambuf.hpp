@@ -15,9 +15,10 @@ public:
     FDBufOut(FDBufOut&& other) noexcept;
     FDBufOut& operator=(FDBufOut&& other) noexcept;
 
+    std::streamsize sputn(const char* buf, std::streamsize size);
+
 private:
     int_type overflow(int_type c) override;
-    std::streamsize xsputn(const char* buf, std::streamsize size) override;
 
 private:
     std::optional<std::int32_t> fd_;
@@ -34,10 +35,11 @@ public:
     FDBufIn(FDBufIn&& other) noexcept;
     FDBufIn& operator=(FDBufIn&& other) noexcept;
 
+    std::streamsize sgetn(char* buf, std::streamsize size);
+
 private:
     int_type uflow() override;
     int_type underflow() override;
-    std::streamsize xsgetn(char* buf, std::streamsize size) override;
 
 private:
     std::optional<std::int32_t> fd_;
