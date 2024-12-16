@@ -9,15 +9,16 @@ namespace stewkk::ipc {
 
 class Fifo {
 public:
-    using ReadFD = std::int32_t;
-    using WriteFD = std::int32_t;
+  using ReadFD = std::int32_t;
+  using WriteFD = std::int32_t;
 
-    explicit Fifo(std::filesystem::path path);
+  explicit Fifo(std::filesystem::path path);
 
-    FDBufIn GetReader();
-    FDBufOut GetWriter();
+  FDBufIn GetReader();
+  FDBufOut GetWriter();
+
 private:
-    std::filesystem::path path_;
+  std::filesystem::path path_;
 };
 
 }  // namespace stewkk::ipc

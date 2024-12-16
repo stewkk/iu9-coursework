@@ -8,16 +8,17 @@ namespace stewkk::ipc {
 
 class Pipe {
 public:
-    using ReadFD = std::int32_t;
-    using WriteFD = std::int32_t;
+  using ReadFD = std::int32_t;
+  using WriteFD = std::int32_t;
 
-    Pipe();
+  Pipe();
 
-    FDBufIn GetReader();
-    FDBufOut GetWriter();
+  FDBufIn GetReader();
+  FDBufOut GetWriter();
+
 private:
-    ReadFD read_fd_;
-    WriteFD write_fd_;
+  ReadFD read_fd_;
+  WriteFD write_fd_;
 };
 
 }  // namespace stewkk::ipc

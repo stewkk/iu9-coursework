@@ -33,5 +33,3 @@ const floydWarshall = (graph: Graph): number[][] => {
 
   return dist;
 };
-
-

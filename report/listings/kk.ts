@@ -6,7 +6,7 @@ public run = (width: number, height: number): Graph => {
       maxEnergy > this.eps &&
       steady_energy_count < MAX_STEADY_ENERGY_ITERS_COUNT
     ) {
-    
+
       let vertex_count = 0;
       do {
         let newPos = this.findNextVertexPos(this.graph.vertices[id]);
@@ -29,4 +29,3 @@ public run = (width: number, height: number): Graph => {
 
     return centerAndScale(this.graph, width, height);
 };
-

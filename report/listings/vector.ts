@@ -38,5 +38,3 @@ export class Vector {
     this._y *= k;
   }
 }
-
-

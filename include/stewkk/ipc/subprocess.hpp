@@ -1,7 +1,7 @@
 #pragma once
 
-#include <functional>
 #include <cstdlib>
+#include <functional>
 
 #include <stewkk/ipc/fdstreambuf.hpp>
 #include <stewkk/ipc/syscalls.hpp>
@@ -9,10 +9,9 @@
 namespace stewkk::ipc {
 
 template <typename I>
-concept RWIpc =
-requires(I i) {
-    { i.GetReader() } -> std::same_as<FDBufIn>;
-    { i.GetWriter() } -> std::same_as<FDBufOut>;
+concept RWIpc = requires(I i) {
+  { i.GetReader() } -> std::same_as<FDBufIn>;
+  { i.GetWriter() } -> std::same_as<FDBufOut>;
 };
 
 class Subprocess {

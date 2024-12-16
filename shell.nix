@@ -12,6 +12,7 @@ pkgs.mkShell.override {stdenv = pkgs.llvmPackages_18.stdenv;} {
     tex
     pkgs.python312Packages.pygments
     pkgs.cmake
+    pkgs.pre-commit
 
     # keep this line if you use bash
     pkgs.bashInteractive
@@ -21,4 +22,3 @@ pkgs.mkShell.override {stdenv = pkgs.llvmPackages_18.stdenv;} {
     pkgs.clang-tools_18
   ];
 }
-

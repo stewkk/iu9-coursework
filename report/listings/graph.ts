@@ -8,7 +8,7 @@ export class Graph {
   public get vertexCount(): number {
     return this._vertexCount;
   }
-  
+
   public set vertexCount(value: number) {
     this._vertexCount = value;
   }

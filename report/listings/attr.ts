@@ -5,4 +5,3 @@ export const findAttractive = (lhs: Vector, rhs: Vector, k: number): Vector => {
   const force = (dist * dist) / k;
   return mul(delta, force / dist);
 };
-
