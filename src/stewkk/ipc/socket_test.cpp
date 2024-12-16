@@ -14,8 +14,18 @@ void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
 
 }  // namespace
 
-TEST(SocketPairTest, ReceivesMessageFromSubprocess) {
+TEST(SocketPairTest, StreamSocketEcho) {
   Subprocess child(ChildProgramm, SocketPair(SocketPair::Type::kStreamSocket));
+  std::string got;
+  got.resize(5);
+
+  child.stdout.sgetn(got.data(), got.size());
+
+  ASSERT_THAT(got, Eq("hello"));
+}
+
+TEST(SocketPairTest, DatagramSocketEcho) {
+  Subprocess child(ChildProgramm, SocketPair(SocketPair::Type::kDatagramSocket));
   std::string got;
   got.resize(5);
 
