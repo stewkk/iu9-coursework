@@ -1,8 +1,8 @@
 #include <gmock/gmock.h>
 
 #include <stewkk/ipc/fdstreambuf.hpp>
-#include <stewkk/ipc/subprocess.hpp>
 #include <stewkk/ipc/pipe.hpp>
+#include <stewkk/ipc/subprocess.hpp>
 
 using ::testing::Eq;
 
@@ -10,9 +10,7 @@ namespace stewkk::ipc {
 
 namespace {
 
-void ChildProgramm(FDBufOut out) {
-  out.sputn("hello", 5);
-}
+void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
 
 }  // namespace
 

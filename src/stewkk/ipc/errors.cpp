@@ -7,8 +7,8 @@
 namespace stewkk::ipc {
 
 SyscallError GetSyscallError() {
-   auto err = errno;
-   return SyscallError(err, std::system_category(), std::format("{}", strerrorname_np(err)));
+  auto err = errno;
+  return SyscallError(err, std::system_category(), std::format("{}", strerrorname_np(err)));
 }
 
 }  // namespace stewkk::ipc

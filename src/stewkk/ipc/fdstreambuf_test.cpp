@@ -12,46 +12,43 @@ using ::testing::Eq;
 namespace stewkk::ipc {
 
 TEST(FdStreamBufTest, RdbufOutput) {
-    {
-      auto fd = open("/tmp/stewkk-ipc-fdbufout", O_CREAT | O_WRONLY, S_IRWXU);
-      FDBufOut outbuf(fd);
+  {
+    auto fd = open("/tmp/stewkk-ipc-fdbufout", O_CREAT | O_WRONLY, S_IRWXU);
+    FDBufOut outbuf(fd);
 
-      std::cout.exceptions(std::ios::badbit | std::ios::eofbit |
-                           std::ios::eofbit);
-      std::cin.exceptions(std::ios::badbit | std::ios::eofbit |
-                          std::ios::eofbit);
+    std::cout.exceptions(std::ios::badbit | std::ios::eofbit | std::ios::eofbit);
+    std::cin.exceptions(std::ios::badbit | std::ios::eofbit | std::ios::eofbit);
 
-      auto current = std::cout.rdbuf();
-      std::experimental::scope_exit _(
-          [&current]() { std::cout.rdbuf(current); });
-      std::cout.rdbuf(&outbuf);
+    auto current = std::cout.rdbuf();
+    std::experimental::scope_exit _([&current]() { std::cout.rdbuf(current); });
+    std::cout.rdbuf(&outbuf);
 
-      std::cout << "hello" << std::endl;
-    }
+    std::cout << "hello" << std::endl;
+  }
 
-    std::string got;
-    std::ifstream tmp("/tmp/stewkk-ipc-fdbufout");
+  std::string got;
+  std::ifstream tmp("/tmp/stewkk-ipc-fdbufout");
 
-    tmp >> got;
+  tmp >> got;
 
-    ASSERT_THAT(got, Eq("hello"));
+  ASSERT_THAT(got, Eq("hello"));
 }
 
 TEST(FdStreamBufTest, DirectOutput) {
-    {
-      auto fd = open("/tmp/stewkk-ipc-fdbufout", O_CREAT | O_WRONLY, S_IRWXU);
-      FDBufOut outbuf(fd);
+  {
+    auto fd = open("/tmp/stewkk-ipc-fdbufout", O_CREAT | O_WRONLY, S_IRWXU);
+    FDBufOut outbuf(fd);
 
-      std::string s = "hello";
-      outbuf.sputn(s.data(), s.size());
-    }
+    std::string s = "hello";
+    outbuf.sputn(s.data(), s.size());
+  }
 
-    std::string got;
-    std::ifstream tmp("/tmp/stewkk-ipc-fdbufout");
+  std::string got;
+  std::ifstream tmp("/tmp/stewkk-ipc-fdbufout");
 
-    tmp >> got;
+  tmp >> got;
 
-    ASSERT_THAT(got, Eq("hello"));
+  ASSERT_THAT(got, Eq("hello"));
 }
 
 TEST(FdStreamBufTest, RdBufInput) {

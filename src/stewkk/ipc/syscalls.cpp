@@ -3,34 +3,34 @@
 #include <cstdint>
 
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include <stewkk/ipc/errors.hpp>
 
 namespace stewkk::ipc {
 
 pid_t Fork() {
-    auto res = fork();
-    if (res == -1) {
-        throw GetSyscallError();
-    }
+  auto res = fork();
+  if (res == -1) {
+    throw GetSyscallError();
+  }
 
-    return res;
+  return res;
 }
 
 void Waitpid(pid_t child_pid) {
   auto res = waitpid(child_pid, nullptr, 0);
   if (res == -1) {
-      throw GetSyscallError();
+    throw GetSyscallError();
   }
 }
 
 void Close(std::int32_t fd) {
-    auto res = close(fd);
-    if (res == -1) {
-        throw GetSyscallError();
-    }
+  auto res = close(fd);
+  if (res == -1) {
+    throw GetSyscallError();
+  }
 }
 
 std::int32_t Open(std::filesystem::path path, std::int32_t flags) {

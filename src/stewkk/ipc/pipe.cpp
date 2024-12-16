@@ -25,20 +25,18 @@ std::pair<Pipe::ReadFD, Pipe::WriteFD> MakePipe() {
   };
 }
 
-} // namespace
+}  // namespace
 
-Pipe::Pipe() {
-    std::tie(read_fd_, write_fd_) = MakePipe();
-}
+Pipe::Pipe() { std::tie(read_fd_, write_fd_) = MakePipe(); }
 
 FDBufIn Pipe::GetReader() {
-    Close(write_fd_);
-    return FDBufIn(read_fd_);
+  Close(write_fd_);
+  return FDBufIn(read_fd_);
 }
 
 FDBufOut Pipe::GetWriter() {
-    Close(read_fd_);
-    return FDBufOut(write_fd_);
+  Close(read_fd_);
+  return FDBufOut(write_fd_);
 }
 
-} // namespace stewkk::ipc
+}  // namespace stewkk::ipc

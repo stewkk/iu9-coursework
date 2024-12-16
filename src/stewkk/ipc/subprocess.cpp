@@ -8,8 +8,6 @@
 
 namespace stewkk::ipc {
 
-Subprocess::~Subprocess() {
-  Waitpid(child_pid_);
-}
+Subprocess::~Subprocess() { Waitpid(child_pid_); }
 
 }  // namespace stewkk::ipc

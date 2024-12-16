@@ -17,24 +17,22 @@ namespace {
 void MakeFifo(std::filesystem::path path) {
   auto ret = mkfifo(path.c_str(), S_IRWXU);
   if (ret == -1) {
-      throw GetSyscallError();
+    throw GetSyscallError();
   }
 }
 
-} // namespace
+}  // namespace
 
-Fifo::Fifo(std::filesystem::path path) : path_(path) {
-    MakeFifo(path);
-}
+Fifo::Fifo(std::filesystem::path path) : path_(path) { MakeFifo(path); }
 
 FDBufIn Fifo::GetReader() {
-    auto fd = Open(path_, O_RDONLY);
-    return FDBufIn(fd);
+  auto fd = Open(path_, O_RDONLY);
+  return FDBufIn(fd);
 }
 
 FDBufOut Fifo::GetWriter() {
-    auto fd = Open(path_, O_WRONLY);
-    return FDBufOut(fd);
+  auto fd = Open(path_, O_WRONLY);
+  return FDBufOut(fd);
 }
 
-} // namespace stewkk::ipc
+}  // namespace stewkk::ipc
