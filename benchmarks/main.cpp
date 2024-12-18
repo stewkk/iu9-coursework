@@ -7,76 +7,129 @@
 #include <stewkk/ipc/fdstreambuf.hpp>
 #include <stewkk/ipc/fifo.hpp>
 #include <stewkk/ipc/pipe.hpp>
+#include <stewkk/ipc/socket_pair.hpp>
 #include <stewkk/ipc/subprocess.hpp>
 
 namespace stewkk::ipc {
 
-static void BM_Pipe(benchmark::State& state) {
-  std::size_t count = state.range(0);
-  std::size_t size = state.range(0);
-  std::string message(size, ' ');
+namespace {
 
-  std::random_device rd;
-  static std::mt19937 generator(rd());
+std::string GenerateRandomMessage(std::size_t size) {
+  std::string message(size, ' ');
+  static std::mt19937 generator(123);
   std::uniform_int_distribution<char> distribution(std::numeric_limits<char>::min(),
                                                    std::numeric_limits<char>::max());
   for (auto& el : message) {
     el = distribution(generator);
   }
 
-  Subprocess child(
-      [&count, &message](FDBufOut out) {
-        for (std::size_t i = 0; i < count; ++i) {
-          out.sputn(message.data(), message.size());
-        }
-      },
-      Pipe());
+  return message;
+}
+
+}  // namespace
+
+static void BM_Pipe(benchmark::State& state) {
+  std::size_t count = state.range(0);
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
+    state.PauseTiming();
+    Subprocess child(
+        [&count, &message](FDBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        Pipe());
+    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
   }
 }
 
-BENCHMARK(BM_Pipe)->RangeMultiplier(2)->Range(8, 8 << 10);
+BENCHMARK(BM_Pipe)->RangeMultiplier(2)->Range(8, 8 << 1);
 ;
 
 static void BM_Fifo(benchmark::State& state) {
   std::size_t count = state.range(0);
   std::size_t size = state.range(0);
-  std::string message(size, ' ');
-
-  std::random_device rd;
-  static std::mt19937 generator(rd());
-  std::uniform_int_distribution<char> distribution(std::numeric_limits<char>::min(),
-                                                   std::numeric_limits<char>::max());
-  for (auto& el : message) {
-    el = distribution(generator);
-  }
+  auto message = GenerateRandomMessage(size);
 
   auto path = std::filesystem::temp_directory_path() / "coursework-fifo-benchmark";
-  std::filesystem::remove(path);
-  Subprocess child(
-      [&count, &message](FDBufOut out) {
-        for (std::size_t i = 0; i < count; ++i) {
-          out.sputn(message.data(), message.size());
-        }
-      },
-      Fifo(std::filesystem::temp_directory_path() / "coursework-fifo-benchmark"));
-
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
+    state.PauseTiming();
+    std::filesystem::remove(path);
+    Subprocess child(
+        [&count, &message](FDBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        Fifo(std::filesystem::temp_directory_path() / "coursework-fifo-benchmark"));
+    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
   }
 }
 
-BENCHMARK(BM_Fifo)->RangeMultiplier(2)->Range(8, 8 << 10);
+BENCHMARK(BM_Fifo)->RangeMultiplier(2)->Range(8, 8 << 1);
+;
+
+static void BM_StreamSocketPair(benchmark::State& state) {
+  std::size_t count = state.range(0);
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
+  std::string got(message.size(), ' ');
+
+  for (auto _ : state) {
+    state.PauseTiming();
+    Subprocess child(
+        [&count, &message](FDBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        SocketPair(SocketPair::Type::kStreamSocket));
+    state.ResumeTiming();
+    for (std::size_t i = 0; i < count; ++i) {
+      child.stdout.sgetn(got.data(), got.size());
+    }
+  }
+}
+
+BENCHMARK(BM_StreamSocketPair)->RangeMultiplier(2)->Range(8, 8 << 1);
+;
+
+static void BM_DatagramSocketPair(benchmark::State& state) {
+  std::size_t count = state.range(0);
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
+  std::string got(message.size(), ' ');
+
+  for (auto _ : state) {
+    state.PauseTiming();
+    Subprocess child(
+        [&count, &message](FDBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        SocketPair(SocketPair::Type::kStreamSocket));
+    state.ResumeTiming();
+    for (std::size_t i = 0; i < count; ++i) {
+      child.stdout.sgetn(got.data(), got.size());
+    }
+  }
+}
+
+BENCHMARK(BM_DatagramSocketPair)->RangeMultiplier(2)->Range(8, 8 << 1);
 ;
 
 }  // namespace stewkk::ipc
