@@ -87,7 +87,6 @@ PosixQueueBufIn::PosixQueueBufIn(std::int32_t fd, std::string name)
 PosixQueueBufIn::~PosixQueueBufIn() {
   if (fd_.has_value()) {
     MqClose(fd_.value());
-    MqUnlink(name_);
   }
 }
 
@@ -113,7 +112,9 @@ std::streamsize PosixQueueBufIn::sgetn(char* buf, std::streamsize size) {
 }
 
 PosixQueue::PosixQueue(std::string name, std::int64_t max_messages, std::int64_t max_message_size)
-    : fd_(MqOpen(name, max_messages, max_message_size)), name_(name) {}
+    : fd_(MqOpen(name, max_messages, max_message_size)), name_(name) {
+  MqUnlink(name);
+}
 
 PosixQueueBufOut PosixQueue::GetWriter() { return PosixQueueBufOut(fd_); }
 
