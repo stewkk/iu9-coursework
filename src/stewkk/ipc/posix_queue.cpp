@@ -12,15 +12,6 @@ namespace stewkk::ipc {
 
 namespace {
 
-bool Write(std::int32_t fd, char data) {
-  auto ok = mq_send(fd, &data, sizeof(data), 0);
-  if (ok == -1) {
-    throw GetSyscallError();
-  }
-
-  return true;
-}
-
 bool Write(std::int32_t fd, const char* data, std::streamsize size) {
   auto ok = mq_send(fd, data, size, 0);
 

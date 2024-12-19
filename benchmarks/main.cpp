@@ -10,6 +10,7 @@
 #include <stewkk/ipc/posix_queue.hpp>
 #include <stewkk/ipc/socket_pair.hpp>
 #include <stewkk/ipc/subprocess.hpp>
+#include <stewkk/ipc/systemv_queue.hpp>
 
 namespace stewkk::ipc {
 
@@ -157,6 +158,33 @@ static void BM_PosixQueue(benchmark::State& state) {
 
 BENCHMARK(BM_PosixQueue)->RangeMultiplier(2)->Range(8, 8 << 1);
 ;
+
+template <std::size_t BufSize> static void BM_SystemvQueue(benchmark::State& state) {
+  std::size_t count = 1000;
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
+
+  std::string got(message.size(), ' ');
+
+  for (auto _ : state) {
+    state.PauseTiming();
+    Subprocess<SystemvQueueBufIn<BufSize>, SystemvQueueBufOut<BufSize>> child(
+        [&count, &message](SystemvQueueBufOut<BufSize> out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        SystemvQueue<BufSize>());
+    state.ResumeTiming();
+    for (std::size_t i = 0; i < count; ++i) {
+      child.stdout.sgetn(got.data(), got.size());
+    }
+  }
+}
+
+BENCHMARK(BM_SystemvQueue<8>)->Arg(8);
+;
+BENCHMARK(BM_SystemvQueue<16>)->Arg(16);
 
 }  // namespace stewkk::ipc
 
