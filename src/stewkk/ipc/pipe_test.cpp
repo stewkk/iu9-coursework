@@ -15,7 +15,7 @@ void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
 }  // namespace
 
 TEST(PipeTest, ReceivesMessageFromSubprocess) {
-  Subprocess child(ChildProgramm, Pipe());
+  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, Pipe());
   std::string got;
   got.resize(5);
 

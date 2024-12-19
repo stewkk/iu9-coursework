@@ -19,7 +19,7 @@ void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
 TEST(FifoTest, ReceivesMessageFromSubprocess) {
   auto path = std::filesystem::temp_directory_path() / "coursework-fifo-test";
   std::filesystem::remove(path);
-  Subprocess child(ChildProgramm, Fifo(path));
+  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, Fifo(path));
   std::string got;
   got.resize(5);
 

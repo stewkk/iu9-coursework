@@ -15,7 +15,7 @@ void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
 }  // namespace
 
 TEST(SocketPairTest, StreamSocketEcho) {
-  Subprocess child(ChildProgramm, SocketPair(SocketPair::Type::kStreamSocket));
+  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, SocketPair(SocketPair::Type::kStreamSocket));
   std::string got;
   got.resize(5);
 
@@ -25,7 +25,7 @@ TEST(SocketPairTest, StreamSocketEcho) {
 }
 
 TEST(SocketPairTest, DatagramSocketEcho) {
-  Subprocess child(ChildProgramm, SocketPair(SocketPair::Type::kDatagramSocket));
+  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, SocketPair(SocketPair::Type::kDatagramSocket));
   std::string got;
   got.resize(5);
 

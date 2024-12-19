@@ -1,33 +1,40 @@
 #pragma once
 
+#include <concepts>
 #include <cstdlib>
 #include <functional>
 
 #include <stewkk/ipc/fdstreambuf.hpp>
+#include <stewkk/ipc/posix_queue.hpp>
 #include <stewkk/ipc/syscalls.hpp>
 
 namespace stewkk::ipc {
 
 template <typename I>
+concept StreamBuf = requires(I i) { std::derived_from<I, std::streambuf>; };
+
+template <typename I>
 concept RWIpc = requires(I i) {
-  { i.GetReader() } -> std::same_as<FDBufIn>;
-  { i.GetWriter() } -> std::same_as<FDBufOut>;
+  { i.GetReader() } -> StreamBuf;
+  { i.GetWriter() } -> StreamBuf;
 };
 
-class Subprocess {
+template <StreamBuf InBuf, StreamBuf OutBuf> class Subprocess {
 public:
-  Subprocess(std::function<void(FDBufOut)> subprogram, RWIpc auto ipc);
+  template <RWIpc Ipc> Subprocess(std::function<void(OutBuf)> subprogram, Ipc ipc);
   ~Subprocess();
   Subprocess(const Subprocess& other) = delete;
   Subprocess& operator=(const Subprocess& other) = delete;
 
-  FDBufIn stdout;
+  InBuf stdout;
 
 private:
   pid_t child_pid_;
 };
 
-Subprocess::Subprocess(std::function<void(FDBufOut)> subprogram, RWIpc auto ipc) : stdout(-1) {
+template <StreamBuf InBuf, StreamBuf OutBuf>
+Subprocess<InBuf, OutBuf>::Subprocess(std::function<void(OutBuf)> subprogram, RWIpc auto ipc)
+    : stdout(-1) {
   auto pid = Fork();
 
   if (pid == 0) {
@@ -37,6 +44,24 @@ Subprocess::Subprocess(std::function<void(FDBufOut)> subprogram, RWIpc auto ipc)
 
   child_pid_ = pid;
   stdout = ipc.GetReader();
+}
+
+template <> template <RWIpc Ipc> Subprocess<PosixQueueBufIn, PosixQueueBufOut>::Subprocess(
+    std::function<void(PosixQueueBufOut)> subprogram, Ipc ipc)
+    : stdout(-1, "") {
+  auto pid = Fork();
+
+  if (pid == 0) {
+    subprogram(ipc.GetWriter());
+    std::exit(0);
+  }
+
+  child_pid_ = pid;
+  stdout = ipc.GetReader();
+}
+
+template <StreamBuf InBuf, StreamBuf OutBuf> Subprocess<InBuf, OutBuf>::~Subprocess() {
+  Waitpid(child_pid_);
 }
 
 }  // namespace stewkk::ipc

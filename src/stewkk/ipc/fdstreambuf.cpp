@@ -1,9 +1,8 @@
 #include <stewkk/ipc/fdstreambuf.hpp>
 
-#include <unistd.h>
-
-#include <iostream>
 #include <utility>
+
+#include <unistd.h>
 
 #include <stewkk/ipc/errors.hpp>
 #include <stewkk/ipc/syscalls.hpp>
