@@ -38,7 +38,6 @@ static void BM_Pipe(benchmark::State& state) {
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     Subprocess<FDBufIn, FDBufOut> child(
         [&count, &message](FDBufOut out) {
           for (std::size_t i = 0; i < count; ++i) {
@@ -46,7 +45,6 @@ static void BM_Pipe(benchmark::State& state) {
           }
         },
         Pipe());
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
@@ -65,7 +63,6 @@ static void BM_Fifo(benchmark::State& state) {
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     std::filesystem::remove(path);
     Subprocess<FDBufIn, FDBufOut> child(
         [&count, &message](FDBufOut out) {
@@ -74,7 +71,6 @@ static void BM_Fifo(benchmark::State& state) {
           }
         },
         Fifo(std::filesystem::temp_directory_path() / "coursework-fifo-benchmark"));
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
@@ -91,7 +87,6 @@ static void BM_StreamSocketPair(benchmark::State& state) {
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     Subprocess<FDBufIn, FDBufOut> child(
         [&count, &message](FDBufOut out) {
           for (std::size_t i = 0; i < count; ++i) {
@@ -99,7 +94,6 @@ static void BM_StreamSocketPair(benchmark::State& state) {
           }
         },
         SocketPair(SocketPair::Type::kStreamSocket));
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
@@ -116,7 +110,6 @@ static void BM_DatagramSocketPair(benchmark::State& state) {
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     Subprocess<FDBufIn, FDBufOut> child(
         [&count, &message](FDBufOut out) {
           for (std::size_t i = 0; i < count; ++i) {
@@ -124,7 +117,6 @@ static void BM_DatagramSocketPair(benchmark::State& state) {
           }
         },
         SocketPair(SocketPair::Type::kStreamSocket));
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
@@ -141,7 +133,6 @@ static void BM_PosixQueue(benchmark::State& state) {
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     Subprocess<PosixQueueBufIn, PosixQueueBufOut> child(
         [&count, &message](PosixQueueBufOut out) {
           for (std::size_t i = 0; i < count; ++i) {
@@ -149,7 +140,6 @@ static void BM_PosixQueue(benchmark::State& state) {
           }
         },
         PosixQueue("/stewkk-ipc-benchmark", 10, size));
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
@@ -167,7 +157,6 @@ template <std::size_t BufSize> static void BM_SystemvQueue(benchmark::State& sta
   std::string got(message.size(), ' ');
 
   for (auto _ : state) {
-    state.PauseTiming();
     Subprocess<SystemvQueueBufIn<BufSize>, SystemvQueueBufOut<BufSize>> child(
         [&count, &message](SystemvQueueBufOut<BufSize> out) {
           for (std::size_t i = 0; i < count; ++i) {
@@ -175,7 +164,6 @@ template <std::size_t BufSize> static void BM_SystemvQueue(benchmark::State& sta
           }
         },
         SystemvQueue<BufSize>());
-    state.ResumeTiming();
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
