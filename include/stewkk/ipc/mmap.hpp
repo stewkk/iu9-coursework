@@ -1,15 +1,26 @@
 #pragma once
 
+#include <concepts>
 #include <streambuf>
+
+#include <semaphore.h>
+#include <sys/mman.h>
+
+#include <stewkk/ipc/errors.hpp>
 
 namespace stewkk::ipc {
 
 class MemMappingBufIn;
 class MemMappingBufOut;
 
+template <typename M>
+concept MemMappingMaker = requires(M mmaker, std::size_t size) {
+  { mmaker(size) } -> std::same_as<char*>;
+};
+
 class MemMapping {
 public:
-  explicit MemMapping(std::size_t length);
+  template <typename MakeMapping> MemMapping(MakeMapping mapping_maker, std::size_t length);
 
   MemMappingBufIn GetReader();
   MemMappingBufOut GetWriter();
@@ -18,6 +29,23 @@ private:
   std::size_t length_;
   char* addr_;
 };
+
+namespace {
+
+void SemInit(sem_t* sem) {
+  auto ok = sem_init(sem, 1, 0);
+  if (ok == -1) {
+    throw GetSyscallError();
+  }
+}
+
+}  // namespace
+
+template <typename MakeMapping>
+MemMapping::MemMapping(MakeMapping mapping_maker, std::size_t length)
+    : length_(length + sizeof(sem_t)), addr_(mapping_maker(length_)) {
+  SemInit(static_cast<sem_t*>(static_cast<void*>(addr_)));
+}
 
 class MemMappingBufIn : public std::streambuf {
 public:
@@ -59,5 +87,9 @@ private:
   char* cur_addr_;
   std::size_t length_;
 };
+
+char* MakeAnonymousMapping(std::size_t length);
+
+char* MakeFileMapping(std::size_t length);
 
 }  // namespace stewkk::ipc

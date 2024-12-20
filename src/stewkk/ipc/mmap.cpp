@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <utility>
+#include <vector>
 
+#include <fcntl.h>
 #include <semaphore.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -14,14 +16,6 @@ namespace stewkk::ipc {
 
 namespace {
 
-char* MakeMapping(std::size_t length) {
-  void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-  if (addr == MAP_FAILED) {
-    throw GetSyscallError();
-  }
-  return static_cast<char*>(addr);
-}
-
 void MemUnmap(char* addr, std::size_t length) {
   auto ok = munmap(addr, length);
   if (ok == -1) {
@@ -29,8 +23,8 @@ void MemUnmap(char* addr, std::size_t length) {
   }
 }
 
-void SemInit(sem_t* sem) {
-  auto ok = sem_init(sem, 1, 0);
+void MemSync(char* addr, size_t length) {
+  auto ok = msync(addr, length, MS_SYNC);
   if (ok == -1) {
     throw GetSyscallError();
   }
@@ -59,11 +53,6 @@ void SemWait(sem_t* sem) {
 
 }  // namespace
 
-MemMapping::MemMapping(std::size_t length)
-    : length_(length + sizeof(sem_t)), addr_(MakeMapping(length_)) {
-  SemInit(static_cast<sem_t*>(static_cast<void*>(addr_)));
-}
-
 MemMappingBufIn MemMapping::GetReader() { return MemMappingBufIn(length_, addr_); }
 
 MemMappingBufOut MemMapping::GetWriter() { return MemMappingBufOut(length_, addr_); }
@@ -73,6 +62,7 @@ MemMappingBufOut::MemMappingBufOut(std::size_t length, char* addr)
 
 MemMappingBufOut::~MemMappingBufOut() {
   if (addr_ != nullptr) {
+    MemSync(addr_, length_);
     MemUnmap(addr_, length_);
   }
 }
@@ -129,6 +119,39 @@ std::streamsize MemMappingBufIn::sgetn(char* buf, std::streamsize size) {
   std::copy(cur_addr_, cur_addr_ + size, buf);
   cur_addr_ += size;
   return size;
+}
+
+char* MakeAnonymousMapping(std::size_t length) {
+  void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  if (addr == MAP_FAILED) {
+    throw GetSyscallError();
+  }
+  return static_cast<char*>(addr);
+}
+
+char* MakeFileMapping(std::size_t length) {
+  auto fd = open("/tmp/stewkk-ipc-mmap", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+  if (fd == -1) {
+    throw GetSyscallError();
+  }
+
+  std::vector<char> tmp(length, 0);
+  auto wrote = write(fd, tmp.data(), tmp.size());
+  if (wrote == -1) {
+    throw GetSyscallError();
+  }
+  if (wrote != length) {
+    throw IpcError("wrote less than length bytes");
+  }
+
+  void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (addr == MAP_FAILED) {
+    throw GetSyscallError();
+  }
+
+  Close(fd);
+
+  return static_cast<char*>(addr);
 }
 
 }  // namespace stewkk::ipc

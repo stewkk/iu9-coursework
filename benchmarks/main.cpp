@@ -175,7 +175,7 @@ BENCHMARK(BM_SystemvQueue<8>)->Arg(8);
 ;
 BENCHMARK(BM_SystemvQueue<16>)->Arg(16);
 
-static void BM_MemMapping(benchmark::State& state) {
+static void BM_AnonMemMapping(benchmark::State& state) {
   std::size_t count = 1000;
   std::size_t size = state.range(0);
   auto message = GenerateRandomMessage(size);
@@ -189,14 +189,38 @@ static void BM_MemMapping(benchmark::State& state) {
             out.sputn(message.data(), message.size());
           }
         },
-        MemMapping(message.size() * count));
+        MemMapping(MakeAnonymousMapping, message.size() * count));
     for (std::size_t i = 0; i < count; ++i) {
       child.stdout.sgetn(got.data(), got.size());
     }
   }
 }
 
-BENCHMARK(BM_MemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_AnonMemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
+;
+
+static void BM_FileMemMapping(benchmark::State& state) {
+  std::size_t count = 1000;
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
+
+  std::string got(message.size(), ' ');
+
+  for (auto _ : state) {
+    Subprocess<MemMappingBufIn, MemMappingBufOut> child(
+        [&count, &message](MemMappingBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        MemMapping(MakeFileMapping, message.size() * count));
+    for (std::size_t i = 0; i < count; ++i) {
+      child.stdout.sgetn(got.data(), got.size());
+    }
+  }
+}
+
+BENCHMARK(BM_FileMemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
 ;
 
 }  // namespace stewkk::ipc
