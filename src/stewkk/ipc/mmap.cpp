@@ -51,6 +51,21 @@ void SemWait(sem_t* sem) {
   }
 }
 
+std::int32_t ShmOpen(std::string name) {
+  auto fd = shm_open(name.c_str(), O_CREAT | O_RDWR | O_TRUNC, S_IRWXU);
+  if (fd == -1) {
+    throw GetSyscallError();
+  }
+  return fd;
+}
+
+void FileTruncate(std::int32_t fd, std::size_t length) {
+  auto ok = ftruncate(fd, length);
+  if (ok == -1) {
+    throw GetSyscallError();
+  }
+}
+
 }  // namespace
 
 MemMappingBufIn MemMapping::GetReader() { return MemMappingBufIn(length_, addr_); }
@@ -143,6 +158,20 @@ char* MakeFileMapping(std::size_t length) {
   if (wrote != length) {
     throw IpcError("wrote less than length bytes");
   }
+
+  void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (addr == MAP_FAILED) {
+    throw GetSyscallError();
+  }
+
+  Close(fd);
+
+  return static_cast<char*>(addr);
+}
+
+char* MakePosixSharedMemory(std::size_t length) {
+  auto fd = ShmOpen("/stewkk-ipc-shm");
+  FileTruncate(fd, length);
 
   void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (addr == MAP_FAILED) {

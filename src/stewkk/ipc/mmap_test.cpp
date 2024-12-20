@@ -36,4 +36,15 @@ TEST(MmapTest, FileMapping) {
   ASSERT_THAT(got, Eq("hello"));
 }
 
+TEST(MmapTest, PosixSharedMemory) {
+  Subprocess<MemMappingBufIn, MemMappingBufOut> child(ChildProgramm,
+                                                      MemMapping(MakePosixSharedMemory, 5));
+  std::string got;
+  got.resize(5);
+
+  child.stdout.sgetn(got.data(), got.size());
+
+  ASSERT_THAT(got, Eq("hello"));
+}
+
 }  // namespace stewkk::ipc

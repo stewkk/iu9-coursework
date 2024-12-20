@@ -223,6 +223,30 @@ static void BM_FileMemMapping(benchmark::State& state) {
 BENCHMARK(BM_FileMemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
 ;
 
+static void BM_PosixSharedMemory(benchmark::State& state) {
+  std::size_t count = 1000;
+  std::size_t size = state.range(0);
+  auto message = GenerateRandomMessage(size);
+
+  std::string got(message.size(), ' ');
+
+  for (auto _ : state) {
+    Subprocess<MemMappingBufIn, MemMappingBufOut> child(
+        [&count, &message](MemMappingBufOut out) {
+          for (std::size_t i = 0; i < count; ++i) {
+            out.sputn(message.data(), message.size());
+          }
+        },
+        MemMapping(MakePosixSharedMemory, message.size() * count));
+    for (std::size_t i = 0; i < count; ++i) {
+      child.stdout.sgetn(got.data(), got.size());
+    }
+  }
+}
+
+BENCHMARK(BM_PosixSharedMemory)->RangeMultiplier(2)->Range(8, 8 << 1);
+;
+
 }  // namespace stewkk::ipc
 
 BENCHMARK_MAIN();

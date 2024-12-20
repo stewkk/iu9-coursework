@@ -92,4 +92,6 @@ char* MakeAnonymousMapping(std::size_t length);
 
 char* MakeFileMapping(std::size_t length);
 
+char* MakePosixSharedMemory(std::size_t length);
+
 }  // namespace stewkk::ipc
