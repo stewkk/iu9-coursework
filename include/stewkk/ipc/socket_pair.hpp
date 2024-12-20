@@ -11,9 +11,6 @@ namespace stewkk::ipc {
 
 class SocketPair {
 public:
-  using ReadFD = std::int32_t;
-  using WriteFD = std::int32_t;
-
   enum class Type { kStreamSocket = SOCK_STREAM, kDatagramSocket = SOCK_DGRAM };
 
   explicit SocketPair(Type type);
