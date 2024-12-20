@@ -1,5 +1,6 @@
 add_library(libipc pipe.cpp socket_pair.cpp fifo.cpp
   posix_queue.cpp errors.cpp
+  mmap.cpp
   fdstreambuf.cpp syscalls.cpp)
 add_library(stewkk::libipc ALIAS libipc)
 target_compile_features(libipc PUBLIC cxx_std_20)

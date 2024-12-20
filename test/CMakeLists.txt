@@ -8,6 +8,7 @@ target_sources(unittests PRIVATE
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/socket_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/posix_queue_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/systemv_queue_test.cpp
+  ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/mmap_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/fdstreambuf_test.cpp
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/errors_test.cpp
 )

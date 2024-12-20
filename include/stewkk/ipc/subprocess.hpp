@@ -5,6 +5,7 @@
 #include <functional>
 
 #include <stewkk/ipc/fdstreambuf.hpp>
+#include <stewkk/ipc/mmap.hpp>
 #include <stewkk/ipc/posix_queue.hpp>
 #include <stewkk/ipc/syscalls.hpp>
 
@@ -49,6 +50,20 @@ Subprocess<InBuf, OutBuf>::Subprocess(std::function<void(OutBuf)> subprogram, RW
 template <> template <RWIpc Ipc> Subprocess<PosixQueueBufIn, PosixQueueBufOut>::Subprocess(
     std::function<void(PosixQueueBufOut)> subprogram, Ipc ipc)
     : stdout(-1, "") {
+  auto pid = Fork();
+
+  if (pid == 0) {
+    subprogram(ipc.GetWriter());
+    std::exit(0);
+  }
+
+  child_pid_ = pid;
+  stdout = ipc.GetReader();
+}
+
+template <> template <RWIpc Ipc> Subprocess<MemMappingBufIn, MemMappingBufOut>::Subprocess(
+    std::function<void(MemMappingBufOut)> subprogram, Ipc ipc)
+    : stdout(0, nullptr) {
   auto pid = Fork();
 
   if (pid == 0) {
