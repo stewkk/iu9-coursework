@@ -3,6 +3,7 @@
 #include <concepts>
 #include <cstdlib>
 #include <functional>
+#include <streambuf>
 
 #include <stewkk/ipc/fdstreambuf.hpp>
 #include <stewkk/ipc/mmap.hpp>
