@@ -73,7 +73,12 @@ MemMappingBufIn MemMapping::GetReader() { return MemMappingBufIn(length_, addr_)
 MemMappingBufOut MemMapping::GetWriter() { return MemMappingBufOut(length_, addr_); }
 
 MemMappingBufOut::MemMappingBufOut(std::size_t length, char* addr)
-    : length_(length), addr_(addr), cur_addr_(addr_ + sizeof(sem_t)) {}
+    : length_(length), addr_(addr), cur_addr_(addr_ + sizeof(sem_t)) {
+  auto ok = madvise(addr_, length, MADV_SEQUENTIAL);
+  if (ok == -1) {
+    throw GetSyscallError();
+  }
+}
 
 MemMappingBufOut::~MemMappingBufOut() {
   if (addr_ != nullptr) {
@@ -104,7 +109,12 @@ std::streamsize MemMappingBufOut::sputn(const char* buf, std::streamsize size) {
 }
 
 MemMappingBufIn::MemMappingBufIn(std::size_t length, char* addr)
-    : length_(length), addr_(addr), cur_addr_(addr_ + sizeof(sem_t)) {}
+    : length_(length), addr_(addr), cur_addr_(addr_ + sizeof(sem_t)) {
+  auto ok = madvise(addr, length, MADV_SEQUENTIAL);
+  if (ok == -1) {
+    throw GetSyscallError();
+  }
+}
 
 MemMappingBufIn::~MemMappingBufIn() {
   if (addr_ != nullptr) {
@@ -150,14 +160,7 @@ char* MakeFileMapping(std::size_t length) {
     throw GetSyscallError();
   }
 
-  std::vector<char> tmp(length, 0);
-  auto wrote = write(fd, tmp.data(), tmp.size());
-  if (wrote == -1) {
-    throw GetSyscallError();
-  }
-  if (wrote != length) {
-    throw IpcError("wrote less than length bytes");
-  }
+  FileTruncate(fd, length);
 
   void* addr = mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (addr == MAP_FAILED) {
