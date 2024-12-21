@@ -13,5 +13,6 @@ target_sources(unittests PRIVATE
   ${PROJECT_SOURCE_DIR}/src/stewkk/ipc/errors_test.cpp
 )
 target_compile_options(unittests PRIVATE ${BASE_COMPILE_FLAGS})
+target_link_options(unittests PRIVATE ${BASE_COMPILE_FLAGS})
 target_link_libraries(unittests PRIVATE stewkk::libipc gmock_main)
 gtest_discover_tests(unittests)
