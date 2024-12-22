@@ -97,8 +97,10 @@
 cmake .. -D CMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -D BASE_LINK_FLAGS='-static-libstdc++;-static-libgcc;-fno-omit-frame-pointer' -D BASE_COMPILE_FLAGS='-fno-omit-frame-pointer'
 
 cmake .. -D CMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -D BASE_LINK_FLAGS='-static-libstdc++;-static-libgcc' -D BASE_COMPILE_FLAGS=''
-
+cmake --build .
 ./bin/benchmarks --benchmark_min_warmup_time=5 --benchmark_repetitions=5 --benchmark_out=out.json --benchmark_out_format=json
+
+sudo cpupower frequency-set --governor performance
 
 echo 0 > /proc/sys/kernel/randomize_va_space
 echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
