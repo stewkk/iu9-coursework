@@ -1,0 +1,32 @@
+@startuml
+class Subprocess {
+  StreamBuf stdout
+
+  Subprocess(std::function<void(Streambuf stdin)> childProgram, RWIpc)
+}
+
+interface StreamBuf
+
+interface RWIpc
+
+class Pipe {
+  int fd
+  Pipe()
+  StreamBuf GetReader()
+  StreamBuf GetWriter()
+}
+
+class std::streambuf
+
+class FdBufOut
+
+class FdBufIn
+
+Subprocess *-- StreamBuf
+Subprocess *-- RWIpc : use
+std::streambuf <|-- StreamBuf
+StreamBuf <|-- FdBufOut
+StreamBuf <|-- FdBufIn
+RWIpc <|-- Pipe
+
+@enduml

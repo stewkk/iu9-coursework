@@ -15,13 +15,16 @@
 \usepackage{subcaption}
 \usepackage{float}
 
+\usepackage{tikz}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{trees}
+
 \floatname{algorithm}{Листинг}
 \renewcommand{\algorithmname}{Листинг}
 
-\title{Визуализация графа связей пользователей социальной сети}
-\date{\today}
-\author{Киселев Кирилл}
-\author[me]{Выполнил: Киселев Кирилл ИУ9-51Б\\[1mm]Руководитель: Каганов Ю.Т.}
+\title{Сравнение методов коммуникации между процессами в среде Linux}
+\date{\today} \author{Старовойтов Александр} \author[me]{Выполнил: Старовойтов Александр
+  ИУ9-51Б\\[1mm]Руководитель: Цалкович П.А.}
 % \thanks
 % \institute{МГТУ им. Н.Э. Баумана}
 \begin{document}
@@ -30,322 +33,209 @@
 \begin{frame}{Цели и задачи}
   \metroset{block=fill}
 	\begin{alertblock}{Цель}
-		Реализовать приложение позволяющее визуализировать данные о связях пользователей социальной сети в виде графа.
+		Провести сравнительный анализ механизмов межпроцессной коммуникации в Linux.
 	\end{alertblock}
 	\begin{alertblock}{Задачи}
-
 		\begin{itemize}
-			\item Сформулировать критерии качества визуализации графа;
-			\item Изучить способы визуализции графов;
-			\item Реализовать несколько алгоритмов визуализации графов;
-			\item Сравнить реализованное решение с существущими;
+			\item Изучить методы межпроцессной коммуникации;
+			\item Реализовать библиотеку для их поддержки на C++;
+			\item Реализовать бенчмарки;
+			\item Собрать данные о производительности и проанализировать;
 		\end{itemize}
 	\end{alertblock}
 \end{frame}
 
-\begin{frame}{Критерии качества визуализации}
+\begin{frame}{Определение межпроцессной коммуникации}
 
-	\begin{itemize}
-		\item Минимимальность пересечений ребер;
-		\item Равномерность распределение вершин;
-		\item Однородность длин ребер;
-		\item Наличие симметрии.
-	\end{itemize}
-\end{frame}
-
-\begin{frame}{Силовые алгоритмы}
-
-	\alert{Силовые алгоритмы} визуализации графов оперируют основными принципами \textbf{сил} и \textbf{энергии} в физическом смысле, чтобы достичь оптимального распределения узлов и рёбер в графе.
-
-  \metroset{block=fill}
-	\begin{alertblock}{Основные этапы работы}
-		\begin{enumerate}
-			\item Инициализация
-			\item Определение сил
-			\item Обновление координат
-			\item Итерация
-		\end{enumerate}
-	\end{alertblock}
-
-
+\textbf{Межпроцессное взаимодействие} --- это обмен данными между потоками разных
+процессов, реалзизованный с помощью механизмов
+предоставляемых операционной системой.
 
 \end{frame}
 
-\begin{frame}{Алгоритм Идеса}
-	\begin{algorithm}[H]
-		\floatname{algorithm}{MegaAlgorithm}
-		\caption{Алгоритм Идеса}
-		\begin{algorithmic}[1]
-			{\ttfamily \small{
-					\Function{$f_{spring}$}{$p_u, p_v$}
-					\State $r \gets c_{spring}\log{\frac{\|p_v - p_u \|}{l}}  \cdot \overrightarrow{p_u p_v}$
+\begin{frame}{Классификация методов межпроцессной коммуникации}
 
-					\Return $r$
-					\EndFunction
-
-
-					\Function{$f_{rep}$}{$p_u, p_v$}
-					\State $r \gets \frac{c_{rep}}{\|p_v - p_u \|} \cdot \overrightarrow{p_u p_v}  $
-
-					\Return $r$
-					\EndFunction
-
-
-					\Function{Eades}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
-					\State $t \gets 1$
-					\While{$t \leq K$}
-
-					\For{$u \in V$}
-					\State $F_{u}(t) \gets \sum_{v:\{u,v\} \notin E}{f_{rep}(u, v)} + \sum_{v:\{u,v\} \in E}{f_{spring}(u, v)}$
-
-
-					\EndFor
-					\For{$u \in V$}
-					\State $p_u \gets p_u + \delta \cdot F_u(t)$
-					\EndFor
-
-					\State $t \gets t + 1$
-					\EndWhile
-					\Return $p$
-					\EndFunction
-
-				}}
-
-		\end{algorithmic}
-	\end{algorithm}
-\end{frame}
-\begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
-	\begin{algorithm}[H]
-		\caption{Основной алгоритм}
-		\begin{algorithmic}[1]
-
-			{\ttfamily \small{
-					\Function{FruchtermanReingold}{$G = (V, E)$, $p = (p_{v})_{v \in V}$, $k \in \mathbb{N}$}
-          \State $t \gets initialize_t(G)$
-					\While{$k \leq K$}
-
-					\For{$u \in V$}
-					\State $F_{u}(k) \gets \sum_{v \in V}{f_{rep}(u, v)} + \sum_{v:\{u,v\} \in E}{f_{attr}(u, v)}$
-
-
-					\EndFor
-					\For{$u \in V$}
-					\State $p_u \gets p_u + \delta(t) \cdot F_u(k)$
-					\EndFor
-
-					\State $t \gets cool(t)$
-					\State $k \gets k + 1$
-					\EndWhile
-					\Return $p$
-					\EndFunction
-				}}
-
-		\end{algorithmic}
-	\end{algorithm}
-\end{frame}
-\begin{frame}{Алгоритм Фрюхтермана-Рейнгольда}
-	\begin{algorithm}[H]
-		\caption{Нахождение сил притяжения и отталкивания}
-		\begin{algorithmic}[1]
-
-			\Function{$f_{rep}$}{$p_u, p_v$}
-			\State $r \gets \frac{l^2}{\|p_v - p_u \|}  \cdot \overrightarrow{p_v p_u}  $
-
-			\Return $r$
-			\EndFunction
-
-
-			\Function{$f_{attr}$}{$p_u, p_v$}
-			\State $r \gets \frac{\|p_v - p_u \|^2}{l} \cdot \overrightarrow{p_u p_v}  $
-
-			\Return $r$
-			\EndFunction
-
-		\end{algorithmic}
-	\end{algorithm}
-\end{frame}
-\begin{frame}{Алгоритм Камады-Кавай}
-	\begin{algorithm}[H]
-		\caption{Алгоритм Камада-Кавай}
-		\begin{algorithmic}[1]
-
-			{\ttfamily \small{
-					\Function{KamadaKawai}{$G = (V, E)$, $\varepsilon$, $p = (p_{v})_{v \in V}$}
-					\State $d \gets FloydWarshall(G)$
-
-					\State $initialize(l_{i, j})$
-					\State $initialize(k_{i, j})$
-
-					\State \While{$max_i \Delta_i$ > $\varepsilon$}
-
-					\State $\Delta_m \gets max_i \Delta_i$
-					\While{$\Delta_m$ > $\varepsilon$}
-					\State $\text{Вычислить} \ \delta x, \delta y \ \text{решив следующую систему}$
-
-					\State $ \frac{\partial^2 E}{\partial x^{2}_m}(x_m, y_m)\delta x + \frac{\partial^2 E}{\partial x_m \partial y_m}(x_m, y_m)\delta y = -\frac{\partial E}{\partial x_m}(x_m, y_m) $
-					\State $ \frac{\partial^2 E}{\partial y_m \partial x_m}(x_m, y_m)\delta x + \frac{\partial^2 E}{\partial y^{2}_m}(x_m, y_m)\delta y = -\frac{\partial E}{\partial y_m}(x_m, y_m) $
-
-					\State $p_m.x = p_m.x + \delta x$
-					\State $p_m.y = p_m.y + \delta y$
-					\EndWhile
-					\EndWhile
-
-					\State \Return $p$
-					\EndFunction
-				}}
-
-		\end{algorithmic}
-	\end{algorithm}
+  \begin{itemize}
+	\item \textbf{Коммуникационные}: фокусируются на
+	обмене данными между процессами;
+	\item \textbf{Синхронизационные}: для синхронизации действий между различными
+	процессами;
+	\item \textbf{Сигналы}: могут использоваться как для обмена данными, так и для
+	синхронизации.
+  \end{itemize}
 
 \end{frame}
 
+\begin{frame}{Коммуникационные методы}
 
-\begin{frame}{Архитектура приложения }
-
-	\begin{figure}
-		\begin{minipage}{0.5\textwidth}
-			\begin{alertblock}{Этапы работы приложения}
-				\begin{enumerate}
-					\item Сбор данных социлаьной сети
-					\item Преобразование полученных данных в структуры ЯП
-					\item Обработка данных силовым алгоритмом
-					\item Отображение графа
-				\end{enumerate}
-			\end{alertblock}
-		\end{minipage}
-		\hfill
-		\begin{minipage}{0.47\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/app_scheme.png}
-			\caption{Схема работы приложения}
-		\end{minipage}
-	\end{figure}
-
-\end{frame}
-\begin{frame}{Пример работы программы}
-
-	\begin{figure}[H]
-		\centering
-		\begin{subfigure}[b]{0.48\textwidth}
-			% \begin{minipage}[t]{.25\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/fr.png}
-			% \captionsetup{font=small}
-			\caption*{алгоритм Фрюхтермана-Рейнгольда.}
-		\end{subfigure}
-		% \noindent
-		\begin{subfigure}[b]{0.50\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/kk.png}
-			\captionsetup{font=small}
-			\caption*{алгоритм Камады-Кавай.}
-		\end{subfigure}
-		\caption{Результат работы программы}
-	\end{figure}
-
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+    \begin{tikzpicture}[grow'=right,
+      every node/.style={shape=rectangle,draw,align=center}]
+      \node {Коммуникационные\\механизмы}
+      [level distance=50mm, sibling distance=40mm, edge from parent fork right]
+        child {
+          node {Передача данных}
+        }
+        child {
+          node {Разделяемая память}
+        };
+    \end{tikzpicture}
+  \end{minipage}
+  \caption{Классификация коммуникационных механизмов межпроцессного взаимодействия в Linux.}
+  \label{fig:communication_ipc_taxonomy}
+\end{figure}
 
 \end{frame}
 
-\begin{frame}{Сравнение с Graphviz}
-	\begin{figure}[H]
-		\centering
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/fg_k6.png}
-			\caption*{алгоритм Фрюхтермана-Рейнгольда.}
-		\end{minipage}
-		\noindent
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/kk_k6.png}
-			\caption*{алгоритм Камады-Кавай.}
-		\end{minipage}
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/k6_gv.png}
-			\caption*{Graphviz.}
-		\end{minipage}
-		\caption{Результат работы программы на полном графе.}
-	\end{figure}
+\begin{frame}{Передача данных}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+	\resizebox{0.7\textwidth}{7cm}{%
+    \begin{tikzpicture}[grow'=right,
+      every node/.style={shape=rectangle,draw,align=center}]
+          \node {Передача\\данных}
+          [level distance=45mm, sibling distance=30mm, edge from parent fork right]
+            child {
+              node {Поток байтов}
+              [shape=rounded rectangle, level distance=40mm, sibling distance=10mm, edge from parent fork right]
+                child {
+                  node [shape=rounded rectangle] {Каналы}
+                }
+                child {
+                  node [shape=rounded rectangle] {FIFO}
+                }
+                child {
+                  node [shape=rounded rectangle, yshift=-3mm] {Потоковые\\сокеты}
+                }
+            }
+            child {
+              node [shape=rounded rectangle] {Псевдо-\\терминал}
+            }
+            child {
+              node {Сообщения}
+              [level distance=40mm, sibling distance=25mm, edge from parent fork right]
+                child {
+                  node [shape=rounded rectangle] {Очереди\\сообщений\\System V}
+                }
+                child {
+                  node [shape=rounded rectangle] {Очереди\\сообщений\\POSIX}
+                }
+                child {
+                  node [shape=rounded rectangle] {Датаграммные\\сокеты}
+                }
+        };
+    \end{tikzpicture}
+	}
+  \end{minipage}
+  \caption{Классификация методов передачи данных.}
+  \label{fig:data_flow}
+\end{figure}
+
 \end{frame}
 
+\begin{frame}{Разделяемая память}
 
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+	\resizebox{\textwidth}{7cm}{%
+    \begin{tikzpicture}[grow'=right,
+      every node/.style={shape=rectangle,draw,align=center}]
+	  \node {Разделяемая\\память} [level distance=45mm, sibling distance=25mm, edge from parent fork right]
+          child {
+            node [shape=rounded rectangle, xshift=15mm] {Разделяемая память System V}
+          }
+          child {
+            node [shape=rounded rectangle, xshift=13mm] {Разделяемая память POSIX}
+          }
+          child {
+            node {Отображаемая\\память}
+            [level distance=45mm, sibling distance=25mm, edge from parent fork right]
+              child {
+                node [shape=rounded rectangle] {Анонимное\\отображение}
+              }
+              child {
+                node [shape=rounded rectangle] {Отображение\\файла}
+              }
+          };
+    \end{tikzpicture}
+	}
+  \end{minipage}
+  \caption{Классификация разделяемой памяти.}
+  \label{fig:memory_mapping}
+\end{figure}
 
-\begin{frame}{Сравнение с Graphviz}
-	\begin{figure}[H]
-		\centering
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=0.75\linewidth]{./imgs/fg_small_dense.png}
-			\caption*{алгоритм Фрюхтермана-Рейнгольда}
-		\end{minipage}
-		\noindent
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=0.9\linewidth]{./imgs/kk_small_dense.png}
-			\caption*{алгоритм Камады-Кавай}
-		\end{minipage}
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=1.4\linewidth]{./imgs/small_dense_gv.png}
-			\caption*{Graphviz}
-		\end{minipage}
-		\caption{Результат работы программы на небольшом плотном графе.}
-	\end{figure}
 \end{frame}
 
-\begin{frame}{Сравнение с Graphviz}
-	\begin{figure}[H]
-		\centering
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/fr_btree.png}
-			\caption*{алгоритм Фрюхтермана-Рейнгольда}
-		\end{minipage}
-		\noindent
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/kk_btree.png}
-			\caption*{алгоритм Камады-Кавай}
-		\end{minipage}
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/bin_tree_gv.png}
-			\caption*{Graphviz.}
-		\end{minipage}
-		\caption{Результат работы программы на бинарном дереве.}
-	\end{figure}
+\begin{frame}{Архитектура библиотеки}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+    \resizebox{\textwidth}{6cm}{%
+    \input{class_diagram.tex}
+    }
+  \end{minipage}
+  \caption{Диаграмма классов библиотеки.}
+  \label{fig:classes}
+\end{figure}
+
 \end{frame}
 
-\begin{frame}{Сравнение с Graphviz}
-	\begin{figure}[H]
-		\centering
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/fr_quad_tree.png}
-			\caption*{алгоритм Фрюхтермана-Рейнгольда}
-		\end{minipage}
-		\noindent
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/kk_quad_tree.png}
-			\caption*{алгоритм Камады-Кавай}
-		\end{minipage}
-		\begin{minipage}[t]{.32\textwidth}
-			\centering
-			\includegraphics[width=\linewidth]{./imgs/quad_tree_gv.png}
-			\caption*{Graphviz}
-		\end{minipage}
-		\caption{Результат работы программы на k-арном дереве, при k=4.}
-	\end{figure}
+\begin{frame}{Тестирование корректности}
+
+  \begin{alertblock}{Для проверки корректности кода было применено:}
+  \begin{itemize}
+    \item Покрытие кода юнит-тестами;
+    \item Санитайзеры;
+	\item Статический анализатор clang-tidy;
+	\item valgrind.
+  \end{itemize}
+  \end{alertblock}
+
+\end{frame}
+
+\begin{frame}{Реализация бенчмарков}
+
+  \begin{alertblock}{Бенчмарки построены по одному шаблону:}
+  \begin{itemize}
+    \item Однонаправленная передача (от дочернего процесса к родительскому);
+    \item 40'000 байт в одной итерации;
+	\item Настраивается размер сообщения и их количество;
+	\item fork() для создания дочернего процесса.
+  \end{itemize}
+  \end{alertblock}
+
+\end{frame}
+
+\begin{frame}{Результаты измерений производительности}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{./imgs/performance.png}
+  \end{minipage}
+  \caption{Сравнительный график производительности средств межпроцессной
+    коммуникации.}
+  \label{fig:performance}
+\end{figure}
+
 \end{frame}
 
 \begin{frame}{Заключение}
   \begin{alertblock}{Возможные улучшения}
   \begin{itemize}
-    \item Покрытие кода модульными тестами;
-    \item Написание модулей сбора данных для большего числа соц. сетей;
-    \item Графическое выделение сообществ пользователей;
+    \item Тестирование и замеры производительности на других реализациях UNIX;
+    \item Расширение интерфейсов для поддержки двунаправленной коммуникации.
   \end{itemize}
   \end{alertblock}
 \end{frame}
@@ -353,12 +243,12 @@
 \begin{frame}{Заключение}
   В ходе разработки были получены следующие навыки:
     \begin{itemize}
-      \item Разработка силовых алгоритмов и их применение к задаче визуализации связей пользователей соц. сетей;
-      \item Разработка на языке TypeScript;
-      \item Использование библиотеки Cytoscape.js для визуализации графовых данных;
+      \item Разработка программ с использованием межпроцессной коммуникации;
+      \item Системное программирование на C++ в среде Linux;
+      \item Реализация бенчмарков;
+	  \item Анализ данных о производительности, их представление в виде
+			графиков.
     \end{itemize}
 \end{frame}
-
-
 
 \end{document}

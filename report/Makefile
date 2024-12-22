@@ -17,3 +17,6 @@ build-with-biblio: build
 
 view:
 	@evince ./build/report.pdf
+
+view-presentation:
+	@evince ./build/presentation.pdf
