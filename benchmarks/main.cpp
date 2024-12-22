@@ -15,6 +15,10 @@
 
 namespace stewkk::ipc {
 
+constexpr std::size_t kOverallSize = 40000;
+constexpr std::size_t kRangeFrom = 16;
+constexpr std::size_t kRangeTo = 8 << 10;
+
 namespace {
 
 std::string GenerateRandomMessage(std::size_t size) {
@@ -32,8 +36,8 @@ std::string GenerateRandomMessage(std::size_t size) {
 }  // namespace
 
 static void BM_Pipe(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
@@ -52,12 +56,12 @@ static void BM_Pipe(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Pipe)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_Pipe)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_Fifo(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   auto path = std::filesystem::temp_directory_path() / "coursework-fifo-benchmark";
@@ -78,12 +82,12 @@ static void BM_Fifo(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Fifo)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_Fifo)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_StreamSocketPair(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
   std::string got(message.size(), ' ');
 
@@ -101,12 +105,12 @@ static void BM_StreamSocketPair(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_StreamSocketPair)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_StreamSocketPair)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_DatagramSocketPair(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
   std::string got(message.size(), ' ');
 
@@ -124,12 +128,12 @@ static void BM_DatagramSocketPair(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_DatagramSocketPair)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_DatagramSocketPair)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_PosixQueue(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
   std::string got(message.size(), ' ');
 
@@ -147,12 +151,12 @@ static void BM_PosixQueue(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_PosixQueue)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_PosixQueue)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 template <std::size_t BufSize> static void BM_SystemvQueue(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
@@ -171,13 +175,17 @@ template <std::size_t BufSize> static void BM_SystemvQueue(benchmark::State& sta
   }
 }
 
-BENCHMARK(BM_SystemvQueue<8>)->Arg(8);
-;
 BENCHMARK(BM_SystemvQueue<16>)->Arg(16);
+BENCHMARK(BM_SystemvQueue<32>)->Arg(32);
+BENCHMARK(BM_SystemvQueue<64>)->Arg(64);
+BENCHMARK(BM_SystemvQueue<128>)->Arg(128);
+BENCHMARK(BM_SystemvQueue<256>)->Arg(256);
+BENCHMARK(BM_SystemvQueue<4096>)->Arg(4096);
+BENCHMARK(BM_SystemvQueue<8192>)->Arg(8192);
 
 static void BM_AnonMemMapping(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
@@ -196,12 +204,12 @@ static void BM_AnonMemMapping(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_AnonMemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_AnonMemMapping)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_FileMemMapping(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
@@ -220,12 +228,12 @@ static void BM_FileMemMapping(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_FileMemMapping)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_FileMemMapping)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 static void BM_PosixSharedMemory(benchmark::State& state) {
-  std::size_t count = 1000;
   std::size_t size = state.range(0);
+  std::size_t count = (kOverallSize + size - 1) / size;
   auto message = GenerateRandomMessage(size);
 
   std::string got(message.size(), ' ');
@@ -244,7 +252,7 @@ static void BM_PosixSharedMemory(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_PosixSharedMemory)->RangeMultiplier(2)->Range(8, 8 << 1);
+BENCHMARK(BM_PosixSharedMemory)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
 ;
 
 }  // namespace stewkk::ipc

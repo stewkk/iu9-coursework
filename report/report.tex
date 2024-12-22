@@ -1399,9 +1399,63 @@ void Close(std::int32_t fd) {
 
 \section{Тестирование}
 
+Тестирование разработанной библиотеки осуществлялось с помощью юнит-тестов и
+тестов производительности.
+
 \subsection{Тестирование корректности}
 
+Юнит-тесты покрывают все реилизованные механизмы межпроцессного взаимодействия,
+и построены по одному шаблону. На листинге~\ref{lst:pipe_test} приведен пример
+юнит-теста для тестирования класса Pipe.
+
+\begin{listing}[H]
+  \caption{Реализация теста передачи данных через канал}
+  \label{lst:pipe_test}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+#include <gmock/gmock.h>
+
+#include <stewkk/ipc/fdstreambuf.hpp>
+#include <stewkk/ipc/pipe.hpp>
+#include <stewkk/ipc/subprocess.hpp>
+
+using ::testing::Eq;
+
+namespace stewkk::ipc {
+
+namespace {
+
+void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
+
+}  // namespace
+
+TEST(PipeTest, ReceivesMessageFromSubprocess) {
+  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, Pipe());
+  std::string got;
+  got.resize(5);
+
+  child.stdout.sgetn(got.data(), got.size());
+
+  ASSERT_THAT(got, Eq("hello"));
+}
+
+}  // namespace stewkk::ipc
+  \end{minted}
+\end{listing}
+
+В приведенном тесте инициализируется подпроцесс, в который передается объект
+класса Pipe и подпрограмма, которая записывает сообщение из 5 символов в канал.
+Затем в теле теста считывает сообщение из 5 символов и сравнивается с искомым,
+записанным ранее, значением. Таким образом, проверяется корректность передачи
+данных между процессами.
+
+Юнит-тесты и бенчмарки были дополнительно собраны и запущены в конфигурациях с
+санитайзерами \verb|-fsanitize=undefined| и \verb|-fsanitize=address|, а также с
+программой \verb|valgrind|. Эти инструменты не выявили никаких проблем, что
+гарантирует правильную работу с памятью.
+
 \subsection{Тестирование производительности}
+
+
 
 \newpage
 \anonsection{ЗАКЛЮЧЕНИЕ}  %Заключение

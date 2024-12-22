@@ -15,4 +15,4 @@ target_include_directories(
                     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
 target_compile_options(libipc PRIVATE ${BASE_COMPILE_FLAGS})
-target_link_options(libipc PRIVATE ${BASE_COMPILE_FLAGS})
+target_link_options(libipc PRIVATE ${BASE_LINK_FLAGS})

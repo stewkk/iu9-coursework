@@ -8,5 +8,5 @@ set_target_properties(benchmarks PROPERTIES
   CXX_EXTENSIONS YES
 )
 target_compile_options(benchmarks PRIVATE ${BASE_COMPILE_FLAGS})
-target_link_options(benchmarks PRIVATE ${BASE_COMPILE_FLAGS})
+target_link_options(benchmarks PRIVATE ${BASE_LINK_FLAGS})
 target_link_libraries(benchmarks PRIVATE stewkk::libipc benchmark::benchmark)
