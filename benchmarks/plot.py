@@ -22,7 +22,7 @@ def main():
     df = df.filter(regex='(?!(^FileMemMapping$))^.*$')
 
     print(df)
-    plot = df.plot(title='Mean real time', xticks=[8, 512, 4096, 8192])
+    plot = df.plot(title='Mean real time', xticks=[16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192])
     plt.show()
 
 

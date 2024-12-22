@@ -180,6 +180,9 @@ BENCHMARK(BM_SystemvQueue<32>)->Arg(32);
 BENCHMARK(BM_SystemvQueue<64>)->Arg(64);
 BENCHMARK(BM_SystemvQueue<128>)->Arg(128);
 BENCHMARK(BM_SystemvQueue<256>)->Arg(256);
+BENCHMARK(BM_SystemvQueue<512>)->Arg(512);
+BENCHMARK(BM_SystemvQueue<1024>)->Arg(1024);
+BENCHMARK(BM_SystemvQueue<2048>)->Arg(2048);
 BENCHMARK(BM_SystemvQueue<4096>)->Arg(4096);
 BENCHMARK(BM_SystemvQueue<8192>)->Arg(8192);
 
