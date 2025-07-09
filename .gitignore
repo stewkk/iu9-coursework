@@ -302,3 +302,4 @@ TSWLatexianTemp*
 
 build
 /.venv/
+/report/.venv/
