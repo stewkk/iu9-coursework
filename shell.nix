@@ -5,8 +5,8 @@ let
     inherit (pkgs.texlive) scheme-full
       latexmk;
   });
-  pythonWithPandas = pkgs.python310.buildEnv.override {
-    extraLibs = with pkgs.python310Packages; [
+  pythonWithPandas = pkgs.python312.buildEnv.override {
+    extraLibs = with pkgs.python312Packages; [
       tkinter
       pip
       virtualenv
@@ -22,7 +22,7 @@ pkgs.mkShell.override {stdenv = pkgs.llvmPackages_18.stdenv;} {
     pkgs.cmake
     pkgs.pre-commit
     pythonWithPandas
-    pkgs.nodePackages.pyright
+    pkgs.pyright
     pkgs.tk
     pkgs.tcl
     pkgs.plantuml
