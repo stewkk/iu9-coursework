@@ -616,9 +616,9 @@
 от традиционных реляционных баз данных, зачастую не реализуют ACID транзакции и
 не используют язык SQL для запросов\cite{vaish2013getting}. Менее строгие
 гарантии позволяют достичь большей производительности, доступности и
-масштабируемости. Возникнув как альтернатива реляционным СУБД, ``NoSQL'' базы
-данных сегодня успешно используются компаниями для обработки данных терабайтами
-в сутки, обеспечивая высокую доступность сервисов для миллионов пользователей.
+масштабируемости. ``NoSQL'' базы данных сегодня успешно используются компаниями
+для обработки данных терабайтами в сутки, обеспечивая высокую доступность
+сервисов для миллионов пользователей.
 
 Еще одно отличие нереляционных систем от реляционных заключается в отсутствии
 определенной схемы, задающей ограничения на хранимые данные. Это позволяет легко
@@ -1020,7 +1020,7 @@ Hazelcast создан для интеграции в существующие �
 \subsubsection{Redis}
 
 Redis выделяется поддержкой сложных структур данных в качестве значений, таких
-как списки, хэш-таблицы, множества.
+как списки, хэш-таблицы, множества~\cite{redis}.
 
 Другие свойства Redis:
 
@@ -1112,6 +1112,50 @@ LSM-дерево состоит из буфера для накопления о
 сложности оперции чтения получается также логарифмической. При этом запись
 всегда выполняется за константную сложность, так как использует буфер.
 
+Такие задачи, как создание резервных копий и миграция процессов СУБД между
+серверами, требуют разработку формата сериализации данных для персистентного
+хранения, которые можно десериализовать платформонезависимо. Также, для
+обсепечения быстродействия, этот формат должен быть бинарным. Под это описание
+подходит широкий круг форматов хранения бинарных данных, но в данной работе был
+выбран проект ``Protocol Buffers''~\cite{protobufs}, из-за широкой поддержки
+языков программирования и платформ, качественным набором инструментов для
+отладки и общей популярности технологии. Эта технология разрабатывается в
+Google, а ее исходный код публичен.
+
+При использовани ``Protocol Buffers'' формат хранимых данных описывается на
+доменно-специфичном языке с синтаксисом напоминающим \verb|C|. Индекс
+описывается с помощью одной структуры (в ``Protocol Buffers'' это называют
+сообщением), представленной в листинге~\ref{lst:table_index}. Ключевое слово
+\verb|repeated| делает поле массивом, а \verb|optional| --- опциональным полем.
+Таким образом, индекс задается количеством элементов и массивом сдвигов.
+
+Сообщение для хранения записей представлено в листинге~\ref{lst:table_entry}.
+состоит из строкового ключа, строкового значения и числовой версии. В файле
+записи располагаются последовательно и каждая дополняется размером в байтах.
+
+\begin{listing}
+  \caption{Объявление структуры индекса для постоянного хранилища.}
+  \label{lst:table_index}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{proto}
+message TableIndex {
+  optional uint64 map_size = 1;
+  repeated uint64 index = 2;
+};
+  \end{minted}
+\end{listing}
+
+\begin{listing}
+  \caption{Объявление структуры записи для постоянного хранилища.}
+  \label{lst:table_entry}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{proto}
+message Entry {
+  optional string key = 1;
+  optional string value = 2;
+  optional uint64 version = 3;
+};
+  \end{minted}
+\end{listing}
+
 Для обеспечения гарантий по надежности хранения данных, должна быть реализована
 система восстановления при сбоях. Она основывается на журнале предзаписи --- все
 модифицирующие операции сохраняются в этот журнал до момента завершения
@@ -1140,476 +1184,565 @@ LSM-дерево состоит из буфера для накопления о
 больше двух журналов предзаписи --- первый для заполненного буфера, который
 копируется на диск, а второй для текущего буфера, куда происходит запись.
 
+Для сериализации данных в журнал предзаписи также используются ``Protocol
+Buffers''. Объявления приведены в листинге~\ref{lst:wal_entries}. В них
+используется спецификатор \verb|oneof|, реализующий алгебраический тип.
+
+\begin{listing}
+  \caption{Объявление структуры записи в журнале предзаписи.}
+  \label{lst:wal_entries}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{proto}
+message Remove {
+  optional string key = 1;
+  optional uint64 version = 2;
+};
+
+message Insert {
+  optional string key = 1;
+  optional string value = 2;
+  optional uint64 version = 3;
+};
+
+message Entry {
+  oneof operation_oneof {
+    Remove remove = 1;
+    Insert insert = 2;
+  }
+}
+  \end{minted}
+\end{listing}
+
 Вместе эти элементы хорошо взаимодействуют, относительно легко реализуемы и
 обеспечивают достижение целей по оптимизированности под запись.
 
 \subsection{Архитектура репликации}
 
+Асинхронная репликация по модели ``Ведущий --- Ведомый'' привлекательна в
+контексте данной работы по ряду причин:
 
+\begin{itemize}
+  \item запросы на запись работают быстро, в силу того, что задействуют только
+        один процесс;
+  \item за счет разделения потока более ресурсоемких читающих запросов, по ним
+        достигается большая пропускная способность.
+\end{itemize}
+
+Таким образом, ведущий после сохранения данных в локальном хранилище сразу может
+ответить клиенту, что операция завершена успешно. При этом он запускает фоновый
+процесс, который отправляет запросы с таким же содержимым на ведомые процессы. В
+случае ошибок, операции повторяются с экспоненциально возрастающей задержкой.
+
+Согласованность данных достигается добавлением ко всем записям в локальном
+хранилище и интерфейсах взаимодействия поля ``версия''. Данное поле является
+монотонно возрастающим целым числом, которое атомарно присваивается ведущим
+процессом операцям записи, которые он обрабатывает. Таким образом, номер версии
+определяет глобальный порядок обработки запросов.
+
+Запросы на запись от ведующего к ведомому могут приходить в любом порядке, они
+никак не синхронизируются. С помощью поля версии ведомые процессы исключают
+возможность применения конфликтующих операций в несогласованном с ведущим
+порядке (в данном контексте конфликтующие операции означают конкуретные
+модифицирующие операции с совпадающим ключем). При получении реплицируемых
+данных, их версия сравнивается с версией уже сохраненной в локальном хранилище
+ведомого, и если полученная меньше уже имеющейся, запрос игнорируется.
+
+Таким образом, процесс репликации делает все возможное для быстрого обновления
+состояния ведомых, но при различных сбоях, состояния могут терять
+согласованность.
+
+Для восстановления согласованности было решено применить технику, которая обычно
+применяется в репликации без ведомого --- исправление при чтении. Теперь
+\verb|get| запросы должны синхронно отправить аналогичные запросы на все
+остальные процессы и выбрать из локального и всех полученных значений запись с
+максимальной версией. Если эта запись была получена с другой реплики, нужно
+обновить значение в хранилище процесса.
+
+Исправление при чтении позволяет достичь гарантии ``согласованности в конечном
+счете''. Это означает, что при условии отсутствии записей, через какое-то время
+все процессы будут хранить однинаковые копии данных. Такого свойства достаточно
+для решения многих прикладных задач.
+
+\subsection{Архитектура сетевого взаимодействия}
+
+Так как клиентами СУБД обычно являются серверные приложения, для взаимодействия
+между ними и СУБД был выбран протокол GRPC~\cite{grpc}, что являлось удобным,
+так как он по умолчанию поддерживает ``Protocol Buffers'' в качестве формата
+сериализации данных.
+
+GRPC поддерживается многих платформах, а серверные и клиентские библиотеки
+реализованы для большинства языков программирования.
+
+В целях упрощения, взаимодействие между процессами в кластере реализовано на тех
+же интерфейсах, что и клиенты.
+
+Объявление GRPC интерфейса СУБД представлено в листинге~\ref{lst:grpc_api}.
+
+\subsection{Архитектура системы координации кластера}
+
+Для управления кластером и поддержки модели ``Ведущий --- Ведомый'', применена
+система координации Apache ZooKeeper.
+
+Определение ведущего реализовано путем конкурентного создания эфемерного узла
+\verb|/master| всеми процессами. Процесс, которому это удалось, становится
+ведущим, а все остальные ведомыми. Отслеживание события удаления узла позволяет
+узнать о том, что соединение текущего ведущего с кластером потеряно, и
+оставшиеся узлы повтрояют процесс выбора.
+
+Такой алгоритм гарантирует присутствие одного и только одного ведущего в любой
+момент времени за счет свойств ZooKeeper.
+
+Определение доступных процессов реализовано с помощью создания всеми процессами
+эфемерных монотонно возрастающих узлов \verb|/nodes/node-|. Отслеживая события
+по этим узлам, любой процесс может узнавать актуальное состояние кластера.
+
+\subsection{Архитектура клиента}
+
+Клиент запускается имея список хостов, на которых запущена СУБД. Определение
+мастера происходит через вызов \verb|GetMasterNode|.
+
+При вызове метода \verb|Get|, разработчик с помощью переключателя
+\verb|is_master| может указать, должен ли запрос выполняться на ведущем
+процессе, или на любом из доступных.
 
 \section{Реализация СУБД}
 
-Для выполнения поставленной задачи необходимо реализовать библиотеку для
-межпроцессного взаимодействия, а также тесты производительности каждого
-реализованного метода.
+Для выполнения поставленной задачи необходимо реализовать систему локального
+хранения, репликацию, восстановление при загрузке, GRPC сервер и клиенты, а
+также случайные тесты, подтверждающие корректность.
 
-Разработка проекта осуществлялась в редакторе кода Emacs. Данный
-редактор может быть использван в качестве IDE благодаря обширной библиотеке
-плагинов.
+В качестве языка программирования использовался C++, ввиду следующих его
+особенностей:
 
-Для сборки использовалось окружение NixOS. Этот дистрибутив Linux
-построен на пакетном менеджере \verb|nix| и позволяет декларативно задавать
-пакетные зависимости для каждого проекта.
+\begin{itemize}
+  \item Высокая производительность. Современные СУБД обрабатывают огромные
+        потоки данных от миллионов клиентов, поэтому важны минимальное
+        потребление ресурсов и задержки.
+  \item Возможность работать на низком уровне. Ручное управление памятью и
+        прямая работа с системными вызовами открывает возможности для
+        оптимизаций и позволяет сделать время обработки запросов предсказуемым.
+  \item Поддержка ООП и RAII. Позволяет разрабатывать системный код читаемым и
+        поддерживаемым.
+  \item Широкий выбор библиотек для производительного сетевого взаимодействия и
+        бинарной сериализации данных.
+\end{itemize}
 
-В качестве системы сборки использован CMake, а компилятором
-выступает clang.
+Разработка проекта осуществлялась в редакторе кода Emacs. Данный редактор может
+быть использван в качестве IDE благодаря обширной библиотеке плагинов.
 
-\subsection{Особенности реализации класса Subprocess}
+Для сборки использовалось окружение NixOS. Этот дистрибутив Linux построен на
+пакетном менеджере \verb|nix| и позволяет декларативно и воспроизводимо задавать
+зависимости для каждого проекта, используя функциональный доменно-специфичный
+язык.
 
-Объявление класса Subprocess представлено на
-листинге~\ref{lst:subprocess_declaration}.
+В качестве системы сборки использован CMake, а компилятором выступает clang с
+поддержкой стандарта C++20.
 
-Для реализации чтения и записи через интерфейс межпроцессного взаимодействия,
-используются потоковые буферы \verb|std::streambuf|. Класс Subprocess принимает
-два таких класса InBuf и OutBuf, наследованные от \verb|std::streambuf|, для
-чтения и записи соответственно. Для этого объявляется концепт StreamBuf, как
-\verb|std::derived_from| от \verb|std::streambuf|.
+ZooKeeper применен для координации кластера. С его помощью реализован выбор
+мастера и определение доступных процессов.
 
-Также, в качестве концепта объявляется интерфейс \verb|RWIpc|, объект,
-удовлетворяющий которому, принимается конструктором класса Subprocess. Этот
-интерфейс требует два метода: GetReader и GetWriter, которые возвращают
-инициализированные объекты \verb|StreamBuf| для чтения и записи через механизм
-межпроцессной коммуникации.
+Для реализации случайных тестов использован фрейморк Jepsen~\cite{jepsen},
+написанный на языке программирования Clojure. Проект применяется в тестировании
+практически каждой СУБД, востребованной на рынке и позволяет проверить
+корректность реализации гарантий, заявляемых разработчиками, в условиях
+управляемых сбоев.
 
-Конструктор класса Subprocess отвечает за создание подпроцесса
-\refAlgo{lst:subprocess_constructor}. Для этого, в созданном с помощью
-системного вызова \verb|fork()| процессе, запускается функция subprogram, куда
-передается результат \verb|ipc.GetWriter()|.
+\subsection{Особенности реализации локального хранилища}
 
-При этом, объекты типа \verb|StreamBuf| отвечают за деаллокацию системных
-ресурсов, выделенных при создании объекта типа RWIpc.
-
-\begin{listing}
-  \caption{Определение конструктора класса Subprocess}
-  \label{lst:subprocess_constructor}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-namespace stewkk::ipc {
-
-template <StreamBuf InBuf, StreamBuf OutBuf>
-Subprocess<InBuf, OutBuf>::Subprocess(std::function<void(OutBuf)> subprogram, RWIpc auto ipc)
-    : stdout(-1) {
-  auto pid = Fork();
-
-  if (pid == 0) {
-    subprogram(ipc.GetWriter());
-    std::exit(0);
-  }
-
-  child_pid_ = pid;
-  stdout = ipc.GetReader();
-}
-
-}  // namespace stewkk::ipc
-  \end{minted}
-\end{listing}
-
-\subsection{Особенности реализации потоковых буферов}
-
-Потоковые буферы реализуют интерфейс записи и чтения во внешний интерфейс.
-Пример объявления класса для чтения из файлового дескриптора приведен
-на листинге~\ref{lst:fdbufin_declaration}.
+Интерфейс локального хранилища аналогичен интерфейсу СУБД и представлен классом
+\verb|StorageSystem| \refAlgo{lst:storage_system}.
 
 \begin{listing}
-  \caption{Объявление класса для чтения из файлового дескриптора}
-  \label{lst:fdbufin_declaration}
+  \caption{Объявление класса StorageSystem.}
+  \label{lst:storage_system}
   \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <cstdint>
-#include <optional>
-#include <streambuf>
-
-namespace stewkk::ipc {
-
-class FDBufIn : public std::streambuf {
+class StorageSystem {
 public:
-  explicit FDBufIn(std::int32_t fd);
-  ~FDBufIn();
-  ...
-  std::streamsize sgetn(char* buf, std::streamsize size);
-private:
-  int_type uflow() override;
-  int_type underflow() override;
-private:
-  std::optional<std::int32_t> fd_;
-  char buf_;
-  bool use_buf_;
-};
+  StorageSystem(recovery::WALWriter& wal_writer, storage::SwappableMemoryStorage& storage,
+                storage::PersistentStorageCollection& persistent_storage);
 
-}  // namespace stewkk::ipc
+  result::Result<> Insert(const boost::asio::yield_context& yield, models::storage::KwPair kw_pair);
+  result::Result<> Remove(const boost::asio::yield_context& yield, std::string key,
+                          uint64_t version);
+  result::Result<models::dto::ValueDTO> Get(const boost::asio::yield_context& yield,
+                                            std::string key);
+};
   \end{minted}
 \end{listing}
 
-Конструктор класса принимает файловый дескриптор и сохраняет в виде члена
-класса, а деструктор закрывает его. Переменные \verb|buf_| и \verb|use_buf_|
-имитируют буфер из одного символа для посимвольного чтения. Методы
-\verb|uflow()| и \verb|underflow()| служат для посимвольного чтения, а
-\verb|sgetn()| для чтения size байт в буфер buf. Определения этих функции
-представлены на листинге~\ref{lst:fdbufin_definition}.
+Этот класс определяет верхнеуровневую логику работы LSM-дерева: запрашивает
+данные в буфере и постоянном хранилище, сравнивает версии перед вставкой или
+удалением.
 
-Объявление класса для записи в файловый дескриптор представлено на
-листинге~\ref{lst:fdbufout_declaration}. Интерфейс аналогичен клссу FdBufOut, но
-методы для записи отличаются: \verb|sputn()| для записи size байт в буфер и
-\verb|overflow()| для посимвольной записи. Определения методов класса FdBufOut
-представлены на листинге~\ref{lst:fdbufout_definition}.
+Буфер имеет аналогичный интерфейс, но отвечает за хранение данных в памяти. В
+его основе лежит потокобезопасная хэш-таблица из библиотеки Boost:
+\verb|boost::concurrent_flat_map<std::string, Value>|. Интересной особенностью
+является возможность move-конструировать из нее непотокобезопасную хэш-таблицу,
+что позволяет сначала записывать данные в словарь из нескольких потоков, а затем
+получить доступ ко всей коллекции из одного потока для последующего
+использования данных в ней.
+
+Для реализации перемещения данных на диск необходима атомарная подмена одного
+буфера на другой. Это ответственность класса \verb|SwappableMemoryStorage|
+\refAlgo{lst:swappable_memstorage}.
 
 \begin{listing}
-  \caption{Объявление класса для записи в файловый дескриптор}
-  \label{lst:fdbufout_declaration}
+  \caption{Объявление класса SwappableMemoryStorage.}
+  \label{lst:swappable_memstorage}
   \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <cstdint>
-#include <optional>
-#include <streambuf>
-
-namespace stewkk::ipc {
-
-class FDBufOut : public std::streambuf {
+class SwappableMemoryStorage : public KwStorage, public CollectableStorage {
 public:
-  explicit FDBufOut(std::int32_t fd);
-  ~FDBufOut();
-  ...
-  std::streamsize sputn(const char* buf, std::streamsize size);
-private:
-  int_type overflow(int_type c) override;
-private:
-  std::optional<std::int32_t> fd_;
-};
+  SwappableMemoryStorage();
+  explicit SwappableMemoryStorage(MapStorage* other);
+  ~SwappableMemoryStorage();
 
-}  // namespace stewkk::ipc
+  SwappableMemoryStorage(const SwappableMemoryStorage& other) = delete;
+  SwappableMemoryStorage(SwappableMemoryStorage&& other);
+  SwappableMemoryStorage& operator=(const SwappableMemoryStorage& other) = delete;
+  SwappableMemoryStorage& operator=(SwappableMemoryStorage&& other);
+
+  virtual Result<Value> Get(std::string key) override;
+  virtual void Remove(std::string key, uint64_t version) override;
+  virtual void Insert(KwPair data) override;
+  virtual size_t Size() override;
+
+  virtual std::vector<StorageEntry> Collect() override;
+  virtual void RemoveCollected() override;
+
+private:
+  std::atomic<synchronization::OwningReferenceCounter<MapStorage>*> reader_first_;
+  std::atomic<synchronization::OwningReferenceCounter<MapStorage>*> reader_second_;
+  std::atomic<synchronization::ReferenceCounter<MapStorage>*> writer_;
+};
   \end{minted}
 \end{listing}
 
-Наследование от класса \verb|std::streambuf| позволяет использовать данные
-классы в интерфейсах \verb|std::iostream| стандартной библиотеки \verb|C++|.
+Запись и чтение производится через атомарные указатели на классы-обертки,
+которые реализуют подсчет ссылок через атомарные счетчики и поддерживают
+ожидание завершения всех операций.
 
-Схожим образом реализованы потоковые буферы для методов межпроцессной
-коммуникации, которые осущесляют операции чтения и записи не через файловые
-дескрипторы. Во всех реализациях деструкторы потоковых буферов отвечают за
-деаллокацию системных ресурсов.
+% подробнее описать?
+
+Постоянное хранение реализует класс \verb|PersistentStorage|
+\refAlgo{lst:persistent_storage}. Он хранит путь к файлу с данными, файловый
+дескриптор и массив сдвигов для доступа к данным. В операции чтения применен
+бинарный поиск.
+
+\begin{listing}[H]
+  \caption{Объявление класса PersistentStorage.}
+  \label{lst:persistent_storage}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+class PersistentStorage {
+public:
+  using Index = std::vector<uint64_t>;
+
+  PersistentStorage(fs::path path, int fd, Index index);
+  Result<StorageEntry> Get(std::string_view key);
+  Result<StorageEntry> ReadEntryAt(uint64_t offset) const;
+  fs::path Path() const;
+  Iterator begin() const;
+  Iterator end() const;
+
+private:
+  fs::path path_;
+  int fd_;
+
+  Index index_;
+};
+  \end{minted}
+\end{listing}
+
+Несколько \verb|SSTable| хранятся в классе \verb|PersistentStorageCollection|
+\refAlgo{lst:persistent_storage_collection}, который предоставляет интерфейс
+добавления файла в коллекцию и чтения данных последовательно из всех файлов в
+коллекции.
+
+\begin{listing}[H]
+  \caption{Объявление класса PersistentStorageCollection.}
+  \label{lst:persistent_storage_collection}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+class PersistentStorageCollection {
+public:
+  explicit PersistentStorageCollection(boost::asio::any_io_executor executor);
+
+  Result<> Add(PersistentStorage&& storage);
+  Result<> Add(PersistentStorage&& storage, const boost::asio::yield_context& yield);
+  Result<StorageEntry> Get(std::string_view key, const boost::asio::yield_context& yield);
+  size_t Size() const;
+  Result<> SwapWith(PersistentStorage&& storage, const boost::asio::yield_context& yield);
+  const std::vector<PersistentStorage>& GetCollection() const;
+
+private:
+  std::vector<PersistentStorage> collection_;
+  boost::asio::strand<boost::asio::any_io_executor> strand_;
+  boost::asio::any_io_executor executor_;
+};
+  \end{minted}
+\end{listing}
+
+\verb|PersistentStorageCollection| также поддерживает файл, где хранятся пути ко
+всем используемым постоянным хранилищам. Через атомарную подмену этого файла
+реализована процедура слияния нескольких \verb|SStables| в одну.
+
+Функция \verb|RunCompaction| выполняет слияние и вызывает подмену старой
+коллекции новой. Объединение файлов реализовано с помощью очереди с приоритетами
+из стандартной библиотеки (\verb|std::priority_queue|) \refAlgo{lst:merge_data}.
+
+\subsection{Особенности реализации журнала предзаписи}
+
+Восстановление после сбоя поддерживается с помощью журнала предзаписи. Запись в
+журнал происходит через класс \verb|WALWriterIMPL| \refAlgo{lst:wal_writer} в
+бинарном формате ``Protocol Buffers''. На данный момент, синхронизация потока
+вывода происходит после каждой записи операции, что дает наименьшие задержки при
+обработке запросов, но уменьшает общую пропускную способность системы, из-за
+большого количества системных вызовов.
+
+\begin{listing}[H]
+  \caption{Объявление класса WALWriterIMPl.}
+  \label{lst:wal_writer}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+class WALWriterImpl {
+public:
+  WALWriterImpl(fs::path path, std::ofstream&& stream);
+
+  Result<> WriteEntry(wal::Entry entry);
+  fs::path GetPath() const;
+
+private:
+  fs::path path_;
+  std::ofstream f_;
+};
+  \end{minted}
+\end{listing}
+
+Чтение журнала предзаписи реализовано в виде свободной функции \verb|ReadWAL|,
+которая возвращает массив структур описывающих операции \refAlgo{lst:operation}.
+
+\begin{listing}[H]
+  \caption{Объявление структуры Operation.}
+  \label{lst:operation}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+enum class OperationType { kInsert, kRemove };
+
+struct Operation {
+  OperationType type;
+  std::string key;
+  std::optional<std::string> value;
+  uint64_t version;
+
+  bool operator<=>(const Operation& other) const = default;
+};
+  \end{minted}
+\end{listing}
+
+Класс \verb|SwappableWALWriterImpl| поддерживает атомарное переключение записи с
+одного журнала предзаписи на другой, что позволяет реализовать сохранение буфера
+операций в постоянную память синхронизированно с подменой
+журнала. % TODO: ссылка в приложении
+
+% можно подробнее
+
+\subsection{Особенности реализации репликации}
+
+Для реализации репликации разработан класс \verb|ReplicaClient| --- асинхронный
+клиент GRPC интерфейса СУБД. Класс \verb|Replication| поддерживает словарь,
+который ставит в соответствие хосты и объекты \verb|ReplicaClient|
+\refAlgo{lst:replication}.
+
+\begin{listing}[H]
+  \caption{Объявление класса Replication.}
+  \label{lst:operation}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
+class Replication {
+public:
+  using Host = std::string;
+  using Map = boost::concurrent_flat_map<Host, ReplicaClient>;
+  explicit Replication(agrpc::GrpcContext& grpc_context);
+  result::Result<> SendInsertToReplicas(const boost::asio::yield_context& yield, KwDTO data);
+  result::Result<> SendRemoveToReplicas(const boost::asio::yield_context& yield, KeyDTO data);
+  result::Result<models::dto::ValueDTO> GetNewestFromReplicas( const boost::asio::yield_context& yield, GetRequestDTO key);
+private:
+  agrpc::GrpcContext& grpc_context_;
+  Map host_to_client_;
+};
+  \end{minted}
+\end{listing}
+
+Класс \verb|Replication| реализует методы:
+
+\begin{itemize}
+  \item \verb|SendInsertToReplicas| --- асинхронно реплицировать операцию
+        вставки на все доступные реплики;
+  \item \verb|SendRemoveToReplicas| --- асинхронно реплицировать операцию
+        удаления на все доступные реплики;
+  \item \verb|GetNewestFromReplicas| --- возвращает самую новую версию значения
+        из всех доступных реплик.
+\end{itemize}
+
+На основе этого класса бизнес-логика обработки запросов поддерживает исправление
+данных при чтении и асинхронную репликацию записей.
 
 \subsection{Особенности реализации обработки ошибок}
 
-Обработка ошибок производится с помощью исключений. Для этого объявлены два
-класса, наследующихся от стандартных типов исключений из библиотеки языка
-\verb|C++| \refAlgo{lst:errors_declaration}.
+Обработка ошибок реализована в стиле языка программироавния Go. Использование
+исключений сведено к минимуму, а вместо этого использован алгебраический тип
+результата \refAlgo{lst:result}, и класс ошибок, которые можно оборачивать одну
+в другую \refAlgo{lst:error}.
 
 \begin{listing}[H]
-  \caption{Объявление классов исключений}
-  \label{lst:errors_declaration}
+  \caption{Объявление класса Error.}
+  \label{lst:error}
   \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <system_error>
-
-namespace stewkk::ipc {
-
-class SyscallError : public std::system_error {
-  using std::system_error::system_error;
+enum class ErrorType {
+  kUnknown,
+  kNotFound,
+  kNotMaster,
+  kNotConnected,
 };
 
-SyscallError GetSyscallError();
+class Error : public std::exception {
+private:
+  struct ErrorData {
+    ErrorType type;
+    std::string message;
+  };
 
-class IpcError : public std::logic_error {
-  using std::logic_error::logic_error;
+public:
+  Error(ErrorType type, std::string message);
+  std::string What() const;
+  virtual const char* what() const noexcept override;
+  Error& Wrap(ErrorType type, std::string message);
+  bool Wraps(ErrorType type) const;
+
+private:
+  std::vector<ErrorData> wrapped_;
+  std::optional<std::string> what_;
 };
-
-}  // namespace stewkk::ipc
   \end{minted}
 \end{listing}
-
-Реализация функции \verb|GetSyscallError()| представлена на
-листинге~\ref{lst:errors_definition}. Она использует переменную \verb|errn| для
-определения номера ошибки системного вызова, а затем создает объект класса
-\verb|SyscalError|, который наследуется от \verb|std::system_error|, что
-позволяет выводить строковое название ошибки и ее описание.
-
-Вызов \verb|GetSyscallError()| используется в обертках над системными вызовами
-при обработке ошибок. Например, на листинге~\ref{lst:close_syscall} приведена
-реализация системного вызова \verb|close()| с проверкой возвращаемого значения.
-Если вызов вернул \verb|-1|, что означает ошибку, функция бросает исключение,
-полученное с помощью \verb|GetSyscallError()|.
-
-\begin{listing}[H]
-  \caption{Реализация обертки над системным вызовом close()}
-  \label{lst:close_syscall}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <unistd.h>
-
-namespace stewkk::ipc {
-
-void Close(std::int32_t fd) {
-  auto res = close(fd);
-  if (res == -1) {
-    throw GetSyscallError();
-  }
-}
-
-}  // namespace stewkk::ipc
-  \end{minted}
-\end{listing}
-
-\subsection{Особенности реализации класса Pipe}
-
-Рассмотрим реализацию классов для поддержки различных механизмов межпроцессной
-коммуникации на примере каналов.
-
-На листинге~\ref{lst:pipe_declaration} приведено объявление класса Pipe. Данный
-класс реализует интерфейс \verb|RWIpc| для создания канала, а также
-инициализации потоковых буферов для чтения и записи из этого канала.
-
-Реализация методов приведена на листинге~\ref{lst:pipe_definition}. В
-конструкторе Pipe вызывается функция \verb|pipe()|, которая возвращает два
-файловых дескриптора: для чтения и записи из канала.
-
-Далее, в функциях \verb|GetWriter()| и \verb|GetReader()|, закрывается один из
-файловых дескрипторов, который в текущем процессе (родительском для
-\verb|GetReader()| и дочернем для \verb|GetWriter()|) больше не нужен.
-Оставшийся файловый десприптор передается в конструктор потокового буфера для
-работы с файловыми дескрипторами. Созданные таким образом потоковые буферы
-непосредственно осуществляют запись или чтение в канал.
 
 \section{Тестирование}
 
-Тестирование разработанной библиотеки осуществлялось с помощью юнит-тестов и
-тестов производительности.
+Тестирование разработанной библиотеки осуществлялось с помощью модульных тестов и
+случайных тестов.
 
-\subsection{Тестирование корректности}
+\subsection{Модульные тесты}
 
-Юнит-тесты покрывают все реилизованные механизмы межпроцессного взаимодействия,
-и построены по одному шаблону. На листинге~\ref{lst:pipe_test} приведен пример
-юнит-теста для тестирования класса Pipe.
+Модульные тесты реализованы с использованием библиотеки googletests и проверяют
+корректность реализации базовых блоков, на которых строится ядро хранилища СУБД,
+таких как буфер, SSTables, и т.д.
 
-\begin{listing}[H]
-  \caption{Реализация теста передачи данных через канал}
-  \label{lst:pipe_test}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <gmock/gmock.h>
-
-#include <stewkk/ipc/fdstreambuf.hpp>
-#include <stewkk/ipc/pipe.hpp>
-#include <stewkk/ipc/subprocess.hpp>
-
-using ::testing::Eq;
-
-namespace stewkk::ipc {
-
-namespace {
-
-void ChildProgramm(FDBufOut out) { out.sputn("hello", 5); }
-
-}  // namespace
-
-TEST(PipeTest, ReceivesMessageFromSubprocess) {
-  Subprocess<FDBufIn, FDBufOut> child(ChildProgramm, Pipe());
-  std::string got;
-  got.resize(5);
-
-  child.stdout.sgetn(got.data(), got.size());
-
-  ASSERT_THAT(got, Eq("hello"));
-}
-
-}  // namespace stewkk::ipc
-  \end{minted}
-\end{listing}
-
-В приведенном тесте инициализируется подпроцесс, в который передается объект
-класса Pipe и подпрограмма, которая записывает сообщение из 5 символов в канал.
-Затем в теле теста считывает сообщение из 5 символов и сравнивается с искомым,
-записанным ранее, значением. Таким образом, проверяется корректность передачи
-данных между процессами.
-
-Юнит-тесты и бенчмарки были дополнительно собраны и запущены в конфигурациях с
-санитайзерами \verb|-fsanitize=undefined| и \verb|-fsanitize=address|, а также с
-программой \verb|valgrind|. Эти инструменты не выявили никаких проблем, что
-гарантирует правильную работу с памятью.
-
-\subsection{Тестирование производительности}
-
-Тестирование производительности производилось с помощью микробенчмарков,
-реализованных на основе инструмента \verb|google/benchmarks|. Для каждого
-поддержаного в библиотеке способа межпроцессной коммуникации проверялась
-производительность однонаправленной передачи данных от дочернего процесса,
-созданного с помоью \verb|fork()| к родительскому процессу. Тесты
-производительности параметризировались размером сообщения в байтах, который
-принимал значения от 16 до 8192 с множителем прогрессии равным 2. Также,
-предусмотрена глобальная конфигурация общего числа передаваемых байт.
-
-Каждый из бенчмарков построен по единой схеме. Пример реализации бенчмарка для
-каналов представлен на листинге~\ref{lst:pipe_benchmark}.
+Пример такого теста приведен в листинге~\ref{lst:googletest}.
 
 \begin{listing}[H]
-  \caption{Реализация бенчмарка каналов}
-  \label{lst:pipe_benchmark}
+  \caption{Тест, проверяющий запись и чтение журнала предзаписи.}
+  \label{lst:googletest}
   \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <benchmark/benchmark.h>
-
-#include <stewkk/ipc/fdstreambuf.hpp>
-#include <stewkk/ipc/pipe.hpp>
-#include <stewkk/ipc/subprocess.hpp>
-
-namespace stewkk::ipc {
-
-static void BM_Pipe(benchmark::State& state) {
-  std::size_t size = state.range(0);
-  std::size_t count = (kOverallSize + size - 1) / size;
-  auto message = GenerateRandomMessage(size);
-
-  std::string got(message.size(), ' ');
-
-  for (auto _ : state) {
-    Subprocess<FDBufIn, FDBufOut> child(
-        [&count, &message](FDBufOut out) {
-          for (std::size_t i = 0; i < count; ++i) {
-            out.sputn(message.data(), message.size());
-          }
-        },
-        Pipe());
-    for (std::size_t i = 0; i < count; ++i) {
-      child.stdout.sgetn(got.data(), got.size());
-    }
+TEST(WALTest, WriteAndReadLogs) {
+  boost::asio::thread_pool pool{1};
+  fs::path path;
+  {
+    auto writer = NewSwappableWalWriter(pool.get_executor()).value();
+    boost::asio::spawn(pool, [&](boost::asio::yield_context yield) {
+      writer.Remove(yield, "blabla", 0).value();
+      writer.Insert(yield, KwPair{"a", "b"}).value();
+      path = writer.GetPath(yield);
+    });
+    pool.join();
   }
+
+  auto got = ReadWAL(path).value().first;
+
+  ASSERT_THAT(got, Eq(std::vector{
+                       Operation{OperationType::kRemove, "blabla", std::nullopt},
+                       Operation{OperationType::kInsert, "a", "b"},
+                   }));
 }
-
-BENCHMARK(BM_Pipe)->RangeMultiplier(2)->Range(kRangeFrom, kRangeTo);
-
-}  // namespace stewkk::ipc
   \end{minted}
 \end{listing}
 
-Бенчмарк начинается с блока инициализации. В нем вычисляется число сообщений для
-передачи, которое зависит от общего количества передаваемых байт разделенного на
-размер одного сообщения. Также в этом блоке по зафиксированному сиду
-генерируется случайное содержимое одного сообщения, и заполняется пробельными
-символами буфер такого же размера, который будет использоваться для чтения
-сообщений в родительском процессе. Если для данного метода межпроцессной
-необходимости нужны дополнительные параметры, например путь к файлу FIFO, они
-также создаются и настраиваются в этом блоке.
+\subsection{Случайные тесты}
 
-После блока инициализации следует цикл, где производятся измерения
-производительности. В нем сначала создается дочерний процесс, который также в
-цикле записывает данные в буфер для отправки через механизм межпроцессной
-коммуникации. В каждой итерации внешнего цикла передается 40'000 байт, согласно
-глобальной конфигурации.
-
-После создания подпроцесса, родительский процесс в аналогичном цикле считывает
-40'000 байт из буфера межпроцессной коммуникации.
-
-Каждая итерация цикла для измерения производительности регистирует время
-выполнения этой самой итерации. Алгоритм инструмента \verb|google/benchmark| в
-начале выполняет несколько холостых итераций (без замеров времени выполнения).
-Это делается для <<прогрева>> кэшей процессора, что позволяет снизить шум в
-результатах бенчмарков. Последующие итерации выполняются с замерами времени и
-повторяются до тех пор, пока не наступит общий дедлайн по вермени выполнения
-теста производительности.
-
-Исходя из результатов замеров подсчитываются статистические данные, такие как
-медиана и среднее время выполнения итерации бенчмарка. Полученные данные
-выводятся в терминал, а также сохраняются в формате \verb|JSON|.
-
-Для уменьшения шума в результатах бенчмарков согласно рекомендациям
-LLVM и документаци
-\verb|google/benchmarks| были сделаны следующие настройки:
-
-\begin{itemize}
-  \item сборка в режиме Release, использование статических версий библиотек.
-        Команда для сборки представлена на листинге~\ref{lst:build};
-  \item отключена рандомизация адресного пространства~\refAlgo{lst:tweaks};
-  \item отключено динамическое изменение частоты ядер
-        процессора~\refAlgo{lst:tweaks};
-  \item по-максимуму остановлены сторонние процессы в системе, например браузер.
-\end{itemize}
+Основным способом проверить работоспособность и корректность распределенной СУБД
+являются случайные тесты. Пример такого теста, реализованного с помощью
+фреймврка Jepsen, приведен в листинге~\ref{lst:jepsen}.
 
 \begin{listing}[H]
-  \caption{Сборка проекта и запуск бенчмарков}
-  \label{lst:build}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{sh}
-cmake .. -D CMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -D BASE_LINK_FLAGS='-static-libstdc++;-static-libgcc'
-cmake --build .
-./bin/benchmarks --benchmark_min_warmup_time=5 --benchmark_repetitions=5 --benchmark_out=out.json --benchmark_out_format=json
+  \caption{Определение теста в Jepsen.}
+  \label{lst:jepsen}
+  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{clojure}
+(defn r   [_ _] {:type :invoke, :f :read, :value nil})
+(defn w   [_ _] {:type :invoke, :f :write, :value (str (rand-int 5))})
+(defrecord Client [conn]
+  client/Client
+  (open! [this test node] this) (setup! [this test])
+  (invoke! [_ test op]
+    (let [[k v] (:value op)]
+      (case (:f op)
+        :read (try
+                (assoc op :type :ok, :value (independent/tuple k (dbclient/do-get (str k))))
+                (catch StatusRuntimeException e
+                  (if (= (.getCode (.getStatus e)) Status$Code/NOT_FOUND)
+                    (assoc op :type :ok, :value (independent/tuple k "notfound"))
+                    (assoc op :type :fail, :error :unknown))))
+        :write (do (dbclient/do-insert (str k) v)
+                   (assoc op :type :ok)))))
+  (teardown! [this test]) (close! [_ test]))
+(defn simple-test [opts]
+  (merge tests/noop-test opts
+         {:name "simple-test" :nodes ["n1.incus"]
+          :os ubuntu/os :db (db) :client (Client. nil)
+          :generator (->> (independent/concurrent-generator
+                           10
+                           (range)
+                           (fn [k]
+                             (->> (gen/mix [r w])
+                                  (gen/stagger 1/50)
+                                  (gen/limit 100))))
+                          (gen/nemesis nil)
+                          (gen/time-limit 15))
+          :checker  (checker/linearizable {:model (model/register "notfound") :algorithm :linear})
+          :pure-generators true}))
   \end{minted}
 \end{listing}
 
-\begin{listing}[H]
-  \caption{Настройки системы для бенчмарков}
-  \label{lst:tweaks}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{sh}
-sudo cpupower frequency-set --governor performance
-echo 0 > /proc/sys/kernel/randomize_va_space
-echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
-  \end{minted}
-\end{listing}
+Для реализации случайных тестов был разработан GRPC клиент для СУБД,
+использующий библиотеки на Java в Clojure.
 
-Таким образом, для большинства тестов разброс значений не превысил $0.5\%$.
+Фреймворк Jepsen позволяет описать установку и запуск СУБД на хосте с
+использованием удобных интерфейсов на Clojure. Перед выполнением теста, база
+данных настраивается на виртуальных машинах, управляемых системой
+incus~\cite{incus}.
 
-Результаты в виде \verb|JSON| затем были обработаны с помощью скрипта на языке
-Python~\refAlgo{lst:plot}. Данный скрипт использует библиотеку pandas для
-преобразования данных в нужный формат, а затем строит график с помощью
-библиотеки matplotlib.
+Использована модель регистра (минимальная единица хранения в СУБД) для анализа
+истории случайных записей и чтений на предмет линеаризуемости, при условии
+выполнения запросов одним процессом.
 
-График с результатами замеров представлен на рисунке~\ref{fig:performance}. На
-оси абсцисс отмечены размеры передаваемых пакетов в байтах, а на оси ординат
-среднее время, затраченное на передачу 40'000 байт в миллисекундах.
+Тест позволяет настроить частоту запросу, ограничение по времени выполнения,
+повлиять на распределение значений и моделировать сбои и восстановления с
+определенным интервалом.
 
-\begin{figure}[H]
-  \centering
-  \begin{minipage}[t]{\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{./imgs/performance.png}
-  \end{minipage}
-  \caption{Сравнительный график производительности средств межпроцессной
-    коммуникации.}
-  \label{fig:performance}
-\end{figure}
+Фреймворк также поддерживает различные визуализации истории выполнения операций
+и результатов тестов.
 
-Как и ожидалось, самую высокую производительность для передачи сообщений
-небольшого размера показала разделяемая память и анонимная отображаемая память.
-Этот отрыв обуславливается экономией на системных вызовах и лишних операциях
-копирования в буфер ядра, которые присущи остальным методам межпроцессной
-коммуникации.
-
-На больших размерах буферов разницы практически не оказалось, т.к. количество
-системных вызовов было сведено к минимуму.
-
-Файловые отображения показали плохие результаты на любом размере буфера, т.к.
-зависят от быстродействия персистентной файловой системы. Поэтому они были
-намеренно исключены из графика сравнения на этапе подготовки данных.
-
-Стоит упомянуть, что производительность средств межпроцессной коммуникации может
-меняться от конкретной конфигурации системы и режима нагрузки, и, например,
-зависеть от версии ядра Linux. Измерения приведенные в данной работе выполнены
-на версии ядра \verb|6.6.52|, но могут быть легко воспроизведены на любой
-целевой системе и гибко сконфигурированны под целевой режим нагрузки путем
-изменения размеров и/или количества передаваемых пакетов.
+Было проведено множество итераций тестирования, которые помогли выявить и
+исправить ошибки в реализации, из-за которых могли теряться данные.
 
 \newpage
 \anonsection{ЗАКЛЮЧЕНИЕ}  %Заключение
 
-В ходе выполнения курсовой работы была разработана библиотека для реализации
-межпроцессного взаимодействия на базе операционной системы Linux, проведены
-тесты производительности интерфейсов данной библиотеки и на их основе оценена
-производительность различных механизмов передачи данных между процессами.
+В ходе выполнения курсовой работы была разработана СУБД ``ключ-значение'' с
+поддержкой репликации, реализация проверена с помощью модульных и случайных
+тестов.
 
-Основной целью данной курсовой работы было проведение сравнительного анлиза
-средств межпроцессной коммуникации в операцинной системе Linux. Результаты
-выполнения задачи демонстрируют корректность реализации библиотеки, на основе
-которой реализованы бенчмарки, что подтверждается автоматизированными
-юнит-тестами. Разработанные тесты производительности предоставляют гибкий
-инструмент для сравнения производительности методов межпроцессной коммуникации в
-различных условяих и режимах нагрузки. Были получены и оценены данные о
-производительности наиболее релевантных в контексте обмена информацией между
-процессами интерфейсов.
+Цель курсовой работы была достигнута. Получена стабильная система,
+оптимизированная под операции записи, отвечающая требованиям доступности и
+согласованности.
 
 В заключение, несмотря на достигнутые положительные результаты, существует
-потенциал для дальнейшего улучшения библиотеки. Это включает в себя тестирование
-и измерение производительности на основе различных реализаций UNIX систем, а
-также расширение интерфейса для двунаправленной коммуникации.
+потенциал для дальнейшего улучшения реализации СУБД. Это включает в себя
+поддержку конфигурируемых схем репликации, сбора метрик, а также различные
+оптимизации: переход на страничную организацию файлов с возможностью
+хэширования, реализацию фильтров Блума и буфера для журнала предзаписи.
 
 \newpage
 \renewcommand\refname{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
@@ -1628,58 +1761,21 @@ Python~\refAlgo{lst:plot}. Данный скрипт использует биб
 \vspace{-30pt}
 
 \begin{listing}[H]
-  \caption{Определение класса Subprocess}
-  \label{lst:subprocess_declaration}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/subprocess_declaration.hpp}
+  \caption{GRPC интерфейс СУБД}
+  \label{lst:grpc_api}
+  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{proto}{./listings/api.proto}
 \end{listing}
 
 \begin{listing}[H]
-  \caption{Определение методов класса FdBufIn}
-  \label{lst:fdbufin_definition}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/fdbufin_definition.cpp}
+  \caption{Реализация функции слияния файлов}
+  \label{lst:merge_data}
+  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/merge_data.cpp}
 \end{listing}
 
 \begin{listing}[H]
-  \caption{Определение методов класса FdBufOut}
-  \label{lst:fdbufout_definition}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/fdbufout_definition.cpp}
-\end{listing}
-
-\begin{listing}[H]
-  \caption{Реализация GetSyscallError()}
-  \label{lst:errors_definition}
-  \begin{minted}[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}
-#include <cerrno>
-#include <cstring>
-#include <format>
-
-namespace stewkk::ipc {
-
-SyscallError GetSyscallError() {
-  auto err = errno;
-  return SyscallError(err, std::system_category(), std::format("{}", strerrorname_np(err)));
-}
-
-}  // namespace stewkk::ipc
-  \end{minted}
-\end{listing}
-
-\begin{listing}[H]
-  \caption{Объявление класса Pipe}
-  \label{lst:pipe_definition}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/pipe.hpp}
-\end{listing}
-
-\begin{listing}[H]
-  \caption{Определение методов класса Pipe}
-  \label{lst:pipe_declaration}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/pipe.cpp}
-\end{listing}
-
-\begin{listing}[H]
-  \caption{Скрипт для построения графика результатов бенчмарков}
-  \label{lst:plot}
-  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{py}{./listings/plot.py}
+  \caption{Реализация алгебраического типа для результата}
+  \label{lst:result}
+  \inputminted[style=bw, breaklines, frame=single, fontsize = \footnotesize, linenos=false, xleftmargin = 1.5em]{cpp}{./listings/result.cpp}
 \end{listing}
 
 \end{document}

@@ -1,0 +1,44 @@
+package iu9db;
+
+service Db {
+  rpc Insert (KeyValueRequest) returns (EmptyReply) {}
+  rpc Remove (KeyRequest)      returns (EmptyReply) {}
+  rpc Get    (GetRequest)      returns (GetReply)   {}
+  rpc GetMasterNode (EmptyRequest) returns (GetMasterNodeReply) {}
+}
+
+enum Source {
+  SOURCE_CLIENT = 0;
+  SOURCE_NODE = 1;
+}
+
+message KeyValueRequest {
+  optional string key = 1;
+  optional string value = 2;
+  optional uint64 version = 3;
+  optional Source source = 4;
+}
+
+message KeyRequest {
+  optional string key = 1;
+  optional uint64 version = 2;
+  optional Source source = 3;
+}
+
+message EmptyRequest {}
+message EmptyReply {}
+
+message GetReply {
+  optional string value = 1;
+  optional uint64 version = 2;
+  optional bytes  md5 = 3;
+}
+message GetRequest {
+  optional string key = 1;
+  optional Source source = 2;
+  optional bool   is_master = 3;
+}
+
+message GetMasterNodeReply {
+  optional string host = 1;
+}
