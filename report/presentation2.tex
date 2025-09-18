@@ -1,0 +1,165 @@
+\documentclass{beamer}
+\usetheme{metropolis}           % Use metropolis theme
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english, main=russian]{babel}
+
+\usepackage{listingsutf8}
+\usepackage[ruled]{algorithm}
+\usepackage{algorithmicx}
+\usepackage[noend]{algpseudocode}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{trees}
+
+\floatname{algorithm}{Листинг}
+\renewcommand{\algorithmname}{Листинг}
+
+\title{Реализация СУБД ``ключ-значение''}
+\date{\today} \author{Старовойтов Александр} \author[me]{Выполнил: Старовойтов Александр
+  ИУ9-61Б\\[1mm]Руководитель: Цалкович П.А.}
+% \thanks
+% \institute{МГТУ им. Н.Э. Баумана}
+\begin{document}
+\maketitle
+
+\begin{frame}{Цели и задачи}
+  \metroset{block=fill}
+	\begin{alertblock}{Цель}
+      Реализовать распределенную СУБД формата ``ключ-знчение'' на основе
+      структуры данных SSTables.
+	\end{alertblock}
+	\begin{alertblock}{Задачи}
+		\begin{itemize}
+          \item Изучить методы реализации распределенных СУБД;
+          \item Разработать архитектуру СУБД ``ключ-значение'';
+          \item Реализовать СУБД и клиент к ней;
+          \item Протестировать реализацию СУБД модульными и случайными тестами.
+		\end{itemize}
+	\end{alertblock}
+\end{frame}
+
+\begin{frame}{NoSQL}
+
+  \textbf{NoSQL} СУБД --- нереляционные базы данных, обычно не использующие SQL
+  в качестве языка запросов.
+
+  По модели данных их разделяют на:
+  \begin{itemize}
+    \item ключ-значение;
+    \item столбцовые;
+    \item документоориентированные;
+    \item графовые.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}{Определение формата СУБД ``ключ-значение''}
+  \textbf{СУБД ``ключ-значение''} --- это \emph{NoSQL} базы данных, с
+  интерфейсом схожим с хэш-таблицей:
+
+  \begin{itemize}
+    \item \emph{get(key)}: получение данных по ключу;
+    \item \emph{insert(key, value)}: вставка данных по ключу;
+    \item \emph{remove(key)}: удаление данных по ключу.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}{Архитектура СУБД}
+  \begin{alertblock}{}
+    \begin{itemize}
+      \item Репликация по модели ``Ведущий --- Ведомый''
+      \item Глобальное версионирование всех запросов на запись
+      \item Вариация LSM-дерева в качестве ядра для хранения данных
+      \item SSTables для физической организации записей на диске
+      \item Координация с помщью ZooKeeper
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Модель ``Ведущий --- Ведомый''}
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{\textwidth}
+    \centering
+    \input{master_follower.tex}
+  \end{minipage}
+  \caption{Модель Ведущий --- Ведомый.}
+  \label{fig:master-follwer}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Реализация СУБД}
+  \begin{alertblock}{}
+    \begin{itemize}
+      \item C++
+      \item Boost::asio и asio-grpc на основе корутин
+      \item libzookeeper в отдельных потоках для связи с zookeeper
+      \item Потокобезопасная подмена буферов на основе std::atomic
+      \item Постоянное хранение с помощью ``Protocol Buffers''
+      \item Вся коммуникация с клиентами и между процессами через GRPC
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Тестирование реализации}
+  \begin{alertblock}{Для проверки корректности:}
+  \begin{itemize}
+    \item покрытие кода юнит-тестами;
+    \item случайные тесты с использованием фреймворка Jepsen.
+  \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Случайные тесты}
+  \begin{alertblock}{}
+    \begin{itemize}
+      \item Реализованы в фреймворке Jepsen на Clojure
+      \item Найстройка ZooKeeper и самой СУБД
+      \item Кластер виртуальных машин
+      \item Генератор случайных запросов
+      \item Управляемые сбои
+      \item Алгоритм для анализа истории выполнения операций
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Заключение}
+  \begin{alertblock}{Возможные улучшения}
+  \begin{itemize}
+    \item поддержка конфигурации схемы репликации;
+    \item сбор метрик;
+    \item переход на страничную организацию памяти с организацией кэширования;
+    \item буфер для журнала предзаписи;
+    \item фильтры Блума для постоянного хранилища.
+  \end{itemize}
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Заключение}
+  Цель курсовой работы была достигнута. Получена стабильная система,
+  оптимизированная под операции записи, отвечающая требованиям доступности и
+  согласованности.
+
+\end{frame}
+
+\begin{frame}{Заключение}
+  В ходе разработки были получены следующие навыки:
+    \begin{itemize}
+      \item разработка многопоточных, конкурентных программ на C++;
+      \item системное программирование на C++ в среде Linux;
+      \item тестирование СУБД при помощи случайных тестов;
+      \item реализация репликации и неизменяемых структур для постоянного
+            хранения.
+    \end{itemize}
+\end{frame}
+
+\end{document}

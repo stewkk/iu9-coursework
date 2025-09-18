@@ -7,6 +7,9 @@ build:
 build2:
 	@latexmk -f -pdf -output-directory=build -shell-escape ./report2.tex
 
+pres:
+	@latexmk -f -pdf -output-directory=build -shell-escape ./presentation2.tex
+
 bib:
 	@cp ./biblio2.bib ./build
 	@cd build && biber report2
